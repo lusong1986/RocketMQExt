@@ -19,7 +19,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>3.2.6</version>
+    <version>3.2.7</version>
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
@@ -403,6 +403,28 @@
                 <artifactId>javassist</artifactId>
                 <version>3.7.ga</version>
             </dependency>
+            
+			<dependency>
+				<groupId>com.dianping.cat</groupId>
+				<artifactId>cat-client</artifactId>
+				<version>1.3.6</version>
+			</dependency>
+			<dependency>
+				<groupId>org.unidal.framework</groupId>
+				<artifactId>foundation-service</artifactId>
+				<version>2.3.0</version>
+			</dependency>
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>16.0</version>
+			</dependency>         
+			<dependency>
+				<groupId>commons-lang</groupId>
+				<artifactId>commons-lang</artifactId>
+				<version>2.6</version>
+			</dependency>			
+			            
         </dependencies>
     </dependencyManagement>
 </project>
