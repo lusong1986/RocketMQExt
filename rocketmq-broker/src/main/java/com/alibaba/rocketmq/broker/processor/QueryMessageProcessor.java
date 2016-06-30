@@ -59,6 +59,8 @@ public class QueryMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
+    	
+		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>QueryMessageProcessor.processRequest:" +request);
         switch (request.getCode()) {
         case RequestCode.QUERY_MESSAGE:
             return this.queryMessage(ctx, request);

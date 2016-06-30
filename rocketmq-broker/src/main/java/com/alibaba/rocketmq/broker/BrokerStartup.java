@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.BrokerConfig;
 import com.alibaba.rocketmq.common.MQVersion;
 import com.alibaba.rocketmq.common.MixAll;
@@ -80,18 +81,23 @@ public class BrokerStartup {
 
 
     public static BrokerController createBrokerController(String[] args) {
+    	  System.out.println(">>>>>>>>>>>>>>>>>>BrokerStartUp.createBrokerController,args:" +args);
+    	
         System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
         // Socket发送缓冲区大小
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
             NettySystemConfig.SocketSndbufSize = 131072;
         }
+        System.out.println(">>>>>>>>>>>>>>>>>>BrokerStartUp.createBrokerController, NettySystemConfig.SocketSndbufSize:" + NettySystemConfig.SocketSndbufSize);
 
         // Socket接收缓冲区大小
         if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
             NettySystemConfig.SocketRcvbufSize = 131072;
         }
+        System.out.println(">>>>>>>>>>>>>>>>>>BrokerStartUp.createBrokerController, NettySystemConfig.SocketRcvbufSize:" + NettySystemConfig.SocketRcvbufSize);
 
+        
         try {
             // 检测包冲突
             PackageConflictDetect.detectFastjson();
@@ -101,6 +107,8 @@ public class BrokerStartup {
             commandLine =
                     ServerUtil.parseCmdLine("mqbroker", args, buildCommandlineOptions(options),
                         new PosixParser());
+            System.out.println(">>>>>>>>>>>>>>>>>>BrokerStartUp.createBrokerController, commandLine:" + commandLine);
+
             if (null == commandLine) {
                 System.exit(-1);
                 return null;
@@ -146,11 +154,15 @@ public class BrokerStartup {
                     MixAll.properties2Object(properties, brokerConfig);
                     MixAll.properties2Object(properties, nettyServerConfig);
                     MixAll.properties2Object(properties, nettyClientConfig);
+                    
+                    
+                    System.out.println("################before properties2Object, messageStoreConfig:" + JSON.toJSONString(messageStoreConfig));
                     MixAll.properties2Object(properties, messageStoreConfig);
+                    System.out.println("################after properties2Object, messageStoreConfig:" + JSON.toJSONString(messageStoreConfig));
 
                     BrokerPathConfigHelper.setBrokerConfigPath(file);
 
-                    System.out.println("load config properties file OK, " + file);
+                    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>load config properties file OK, " + file);
                     in.close();
                 }
             }
@@ -203,7 +215,11 @@ public class BrokerStartup {
 
             // Master监听Slave请求的端口，默认为服务端口+1
             messageStoreConfig.setHaListenPort(nettyServerConfig.getListenPort() + 1);
-
+            System.out.println(">>>>>>>>>>>>>>>>>>BrokerStartUp.createBrokerController, brokerConfig:" + JSON.toJSONString(brokerConfig));
+            System.out.println(">>>>>>>>>>>>>>>>>>BrokerStartUp.createBrokerController, nettyServerConfig:" + JSON.toJSONString(nettyServerConfig));
+            System.out.println(">>>>>>>>>>>>>>>>>>BrokerStartUp.createBrokerController, nettyClientConfig:" + JSON.toJSONString(nettyClientConfig));
+            System.out.println(">>>>>>>>>>>>>>>>>>BrokerStartUp.createBrokerController, messageStoreConfig:" + JSON.toJSONString(messageStoreConfig));
+            
             // 初始化Logback
             LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
             JoranConfigurator configurator = new JoranConfigurator();

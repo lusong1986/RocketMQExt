@@ -15,12 +15,12 @@
  */
 package com.alibaba.rocketmq.common;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import com.alibaba.rocketmq.common.annotation.ImportantField;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 
 /**
@@ -29,6 +29,7 @@ import java.net.UnknownHostException;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class BrokerConfig {
+	
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY,
         System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     @ImportantField

@@ -76,6 +76,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
+		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>ClientManageProcessor.processRequest:" +request);
         switch (request.getCode()) {
         case RequestCode.HEART_BEAT:
             return this.heartBeat(ctx, request);

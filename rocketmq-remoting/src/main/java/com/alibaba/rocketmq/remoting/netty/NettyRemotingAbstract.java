@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.remoting.ChannelEventListener;
 import com.alibaba.rocketmq.remoting.InvokeCallback;
 import com.alibaba.rocketmq.remoting.RPCHook;
@@ -301,6 +302,7 @@ public abstract class NettyRemotingAbstract {
     public void processMessageReceived(ChannelHandlerContext ctx, RemotingCommand msg) throws Exception {
         final RemotingCommand cmd = msg;
         if (cmd != null) {
+        	plog.info(">>>>>>>>>>>>NettyRemotingAbstract.processMessageReceived,msg:" +JSON.toJSONString(msg));
             switch (cmd.getType()) {
             case REQUEST_COMMAND:
                 processRequestCommand(ctx, cmd);

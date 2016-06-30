@@ -17,6 +17,7 @@ package com.alibaba.rocketmq.broker.out;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +71,7 @@ public class BrokerOuterAPI {
 
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig) {
         this(nettyClientConfig, null);
+        log.info(">>>>>>>>>>>>BrokerOuterAPI constructor..........");
     }
 
 
@@ -88,7 +90,7 @@ public class BrokerOuterAPI {
             String addrs = this.topAddressing.fetchNSAddr();
             if (addrs != null) {
                 if (!addrs.equals(this.nameSrvAddr)) {
-                    log.info("name server address changed, old: " + this.nameSrvAddr + " new: " + addrs);
+                    log.info(">>>>>>>>>>>>>BrokerOuterAPI.fetchNameServerAddr.name server address changed, old: " + this.nameSrvAddr + " new: " + addrs);
                     this.updateNameServerAddressList(addrs);
                     this.nameSrvAddr = addrs;
                     return nameSrvAddr;
@@ -110,6 +112,7 @@ public class BrokerOuterAPI {
                 lst.add(addr);
             }
 
+         	log.info(">>>>>>>>>>>>>>>>>>BrokerOuterAPI updateNameServerAddressList. call NettyRemotingClient.updateNameServerAddressList," );
             this.remotingClient.updateNameServerAddressList(lst);
         }
     }
@@ -196,8 +199,11 @@ public class BrokerOuterAPI {
                     if (result != null) {
                         registerBrokerResult = result;
                     }
-
-                    log.info("register broker to name server {} OK", namesrvAddr);
+                    
+                  if(new Random().nextInt(10)==1){
+                	  log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>BrokerOuterAPI.registerBrokerAll>>>>namesrvAddr:" +namesrvAddr+">>>> registerBrokerResult.getMasterAddr():" + registerBrokerResult.getMasterAddr()+">>>> registerBrokerResult.getHaServerAddr():" +  registerBrokerResult.getHaServerAddr() +">>>>registerBrokerResult.getKvTable():"+ registerBrokerResult.getKvTable());                    
+                  }
+                   // log.info("register broker to name server {} OK", namesrvAddr);
                 }
                 catch (Exception e) {
                     log.warn("registerBroker Exception, " + namesrvAddr, e);

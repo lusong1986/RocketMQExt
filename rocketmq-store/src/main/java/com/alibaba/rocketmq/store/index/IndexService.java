@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
@@ -59,11 +60,13 @@ public class IndexService extends ServiceThread {
 
 
     public IndexService(final DefaultMessageStore store) {
+    	log.info(">>>>>>>>>>>>>>>IndexService constructor.");
         this.defaultMessageStore = store;
         this.hashSlotNum = store.getMessageStoreConfig().getMaxHashSlotNum();
         this.indexNum = store.getMessageStoreConfig().getMaxIndexNum();
         this.storePath =
                 StorePathConfigHelper.getStorePathIndex(store.getMessageStoreConfig().getStorePathRootDir());
+    	log.info(">>>>>>>>>>>>>>>IndexService constructor.hashSlotNum:" +hashSlotNum+",indexNum:" +indexNum);
     }
 
 
@@ -74,6 +77,7 @@ public class IndexService extends ServiceThread {
             // ascending order
             Arrays.sort(files);
             for (File file : files) {
+            	log.info(">>>>>>>>>>>>>>>>>>>IndexService.load>>>>>>>>load index file OK, " + file.getAbsolutePath() +",length:" +file.length());
                 try {
                     IndexFile f = new IndexFile(file.getPath(), this.hashSlotNum, this.indexNum, 0, 0);
                     f.load();
@@ -81,12 +85,13 @@ public class IndexService extends ServiceThread {
                     if (!lastExitOK) {
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
                             .getIndexMsgTimestamp()) {
+                         	log.info(">>>>>>>>>>>>>>>>>>>IndexService.load>>>>>>>>will delete index file");
                             f.destroy(0);
                             continue;
                         }
                     }
 
-                    log.info("load index file OK, " + f.getFileName());
+                    log.info(">>>>>>>>>>>>>>>>>>>IndexService.load>>>>>>>>load index file OK, " + f.getFileName());
                     this.indexFileList.add(f);
                 }
                 catch (IOException e) {
@@ -247,14 +252,18 @@ public class IndexService extends ServiceThread {
 
     @Override
     public void run() {
-        log.info(this.getServiceName() + " service started");
+        log.info(">>>>>>>>>>>>>>>>"+this.getServiceName() + " service started");
 
         while (!this.isStoped()) {
             try {
                 Object[] req = this.requestQueue.poll(3000, TimeUnit.MILLISECONDS);
-
                 if (req != null) {
-                    this.buildIndex(req);
+                	 log.info("IndexService.run>  start buildIndexs>>>>>>>>>>>>>>>>>>>>>>req.length:" +req.length);
+                	 
+                	 if(req.length==1){
+                		 log.info("IndexService.run>  start buildIndexs>>>>>>>>>>>>>>>>>>>>>>req[0]:" +JSON.toJSONString(req[0])); 
+                	 }
+                	 this.buildIndex(req);
                 }
             }
             catch (Exception e) {
@@ -319,7 +328,7 @@ public class IndexService extends ServiceThread {
         }
 
         if (breakdown) {
-            log.error("build index error, stop building index");
+            log.error(">>>>>>>>>>>>>>build index error, stop building index");
         }
     }
 

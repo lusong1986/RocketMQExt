@@ -21,10 +21,10 @@ package com.alibaba.rocketmq.common.sysflag;
  * @author shijia.wxr<vintage.wang@gmail.com>
  */
 public class PullSysFlag {
-    private final static int FLAG_COMMIT_OFFSET = 0x1 << 0;
-    private final static int FLAG_SUSPEND = 0x1 << 1;
-    private final static int FLAG_SUBSCRIPTION = 0x1 << 2;
-    private final static int FLAG_CLASS_FILTER = 0x1 << 3;
+    private final static int FLAG_COMMIT_OFFSET = 0x1 << 0; //0001
+    private final static int FLAG_SUSPEND = 0x1 << 1;  //0010
+    private final static int FLAG_SUBSCRIPTION = 0x1 << 2; //0100
+    private final static int FLAG_CLASS_FILTER = 0x1 << 3; //1000
 
 
     public static int buildSysFlag(final boolean commitOffset, final boolean suspend,

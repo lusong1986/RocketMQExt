@@ -66,6 +66,8 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
+    	
+		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>ClientRemotingProcessor.request:" +request);
         switch (request.getCode()) {
             case RequestCode.CHECK_TRANSACTION_STATE:
                 return this.checkTransactionState(ctx, request);
@@ -152,7 +154,7 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             if (group != null) {
                 MQProducerInner producer = this.mqClientFactory.selectProducer(group);
                 if (producer != null) {
-                    final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                    final String addr = RemotingHelper.parseChannelRemoteAddr(ctx.channel()); //broker address
                     producer.checkTransactionState(addr, messageExt, requestHeader);
                 } else {
                     log.debug("checkTransactionState, pick producer by group[{}] failed", group);

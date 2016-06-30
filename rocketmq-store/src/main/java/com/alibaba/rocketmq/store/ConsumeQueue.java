@@ -81,12 +81,16 @@ public class ConsumeQueue {
 
     public boolean load() {
         boolean result = this.mapedFileQueue.load();
+        
+        if(!topic.contains("BenchmarkTest")){
         log.info("load consume queue " + this.topic + "-" + this.queueId + " " + (result ? "OK" : "Failed"));
+        }
         return result;
     }
 
 
     public void recover() {
+		log.info(">>>>>>>>>>>>>>>ConsumeQueue.recover>>>>>>>>>>>>>>");
         final List<MapedFile> mapedFiles = this.mapedFileQueue.getMapedFiles();
         if (!mapedFiles.isEmpty()) {
             // 从倒数第三个文件开始恢复
@@ -112,8 +116,11 @@ public class ConsumeQueue {
                         this.maxPhysicOffset = offset;
                     }
                     else {
-                        log.info("recover current consume queue file over,  " + mapedFile.getFileName() + " "
-                                + offset + " " + size + " " + tagsCode);
+                    	
+						if (!mapedFile.getFileName().contains("BenchmarkTest")) {
+							log.info("recover current consume queue file over,  " + mapedFile.getFileName() + " "
+									+ offset + " " + size + " " + tagsCode);
+						}
                         break;
                     }
                 }
@@ -136,8 +143,10 @@ public class ConsumeQueue {
                     }
                 }
                 else {
-                    log.info("recover current consume queue queue over " + mapedFile.getFileName() + " "
-                            + (processOffset + mapedFileOffset));
+					if (!mapedFile.getFileName().contains("BenchmarkTest")) {
+						log.info("recover current consume queue queue over " + mapedFile.getFileName() + " "
+								+ (processOffset + mapedFileOffset));
+					}
                     break;
                 }
             }
@@ -372,7 +381,7 @@ public class ConsumeQueue {
 
                         if (offsetPy >= phyMinOffset) {
                             this.minLogicOffset = result.getMapedFile().getFileFromOffset() + i;
-                            log.info("compute logics min offset: " + this.getMinOffsetInQuque() + ", topic: "
+                            log.info(">>>>>>>>>>>correctMinOffset>>>>>>>>>compute logics min offset: " + this.getMinOffsetInQuque() + ", topic: "
                                     + this.topic + ", queueId: " + this.queueId);
                             break;
                         }
@@ -396,6 +405,8 @@ public class ConsumeQueue {
 
     public void putMessagePostionInfoWrapper(long offset, int size, long tagsCode, long storeTimestamp,
             long logicOffset) {
+    	log.info(">>>>>>>>>>>>>>>>ConsumeQueue.putMessagePostionInfoWrapper>>>offset:" +offset +",logicOffset:" +logicOffset+",size:" +size+",tagsCode:" +tagsCode);
+    	
         final int MaxRetries = 5;
         boolean canWrite = this.defaultMessageStore.getRunningFlags().isWriteable();
         for (int i = 0; i < MaxRetries && canWrite; i++) {
@@ -407,7 +418,7 @@ public class ConsumeQueue {
             // 只有一种情况会失败，创建新的MapedFile时报错或者超时
             else {
                 // XXX: warn and notify me
-                log.warn("[BUG]put commit log postion info to " + topic + ":" + queueId + " " + offset
+                log.warn(">>>>>>>>>>>>>>>>[BUG]put commit log postion info to " + topic + ":" + queueId + " " + offset
                         + " failed, retry " + i + " times");
 
                 try {
@@ -438,6 +449,9 @@ public class ConsumeQueue {
      */
     private boolean putMessagePostionInfo(final long offset, final int size, final long tagsCode,
             final long cqOffset) {
+    	log.info(">>>>>>>>>>>>>>>>ConsumeQueue.putMessagePostionInfo>>>offset:" +offset +",cqOffset:" +cqOffset+",size:" +size+",tagsCode:" +tagsCode);
+    	
+    	
         // 在数据恢复时会走到这个流程
         if (offset <= this.maxPhysicOffset) {
             return true;
@@ -461,6 +475,8 @@ public class ConsumeQueue {
                         + mapedFile.getWrotePostion());
             }
 
+        	log.info(">>>>>>>>>>>>>>>>ConsumeQueue.putMessagePostionInfo>>>mapedFile:" +mapedFile.getFileName() +",getCommittedPosition:" +mapedFile.getCommittedPosition()+">>>>>>>>expectLogicOffset:"+expectLogicOffset );
+        	
             if (cqOffset != 0) {
                 long currentLogicOffset = mapedFile.getWrotePostion() + mapedFile.getFileFromOffset();
                 if (expectLogicOffset != currentLogicOffset) {
@@ -477,8 +493,12 @@ public class ConsumeQueue {
                 }
             }
 
+            
             // 记录物理队列最大offset
             this.maxPhysicOffset = offset;
+            
+            log.info(">>>>>>>>>>>>>>>>ConsumeQueue.putMessagePostionInfo>>> this.maxPhysicOffset:" + this.maxPhysicOffset );
+            
             return mapedFile.appendMessage(this.byteBufferIndex.array());
         }
 

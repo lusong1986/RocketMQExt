@@ -385,6 +385,10 @@ public class MixAll {
                         Class<?>[] pt = method.getParameterTypes();
                         if (pt != null && pt.length > 0) {
                             String cn = pt[0].getSimpleName();
+                            if(key.equals("brokerRole")){
+                            	System.out.println(">>>>>>>>cn:" +cn);
+                            }
+                            
                             Object arg = null;
                             if (cn.equals("int")) {
                                 arg = Integer.parseInt(property);
@@ -403,6 +407,10 @@ public class MixAll {
                             }
                             else {
                                 continue;
+                            }
+                            
+                            if(key.equals("brokerRole")){
+                            	System.out.println(">>>>>>>>call invoke>> arg:"+arg);
                             }
                             method.invoke(object, new Object[] { arg });
                         }

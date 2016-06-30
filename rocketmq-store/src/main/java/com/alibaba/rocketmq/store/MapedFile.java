@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 
@@ -210,6 +211,7 @@ public class MapedFile extends ReferenceResource {
      * @return 是否成功，写入多少数据
      */
     public AppendMessageResult appendMessage(final Object msg, final AppendMessageCallback cb) {
+        log.info(">>>>>>>>>>>>>>>>MapedFile.appendMessage>>>>>>>>>>msg:" +msg);
         assert msg != null;
         assert cb != null;
 

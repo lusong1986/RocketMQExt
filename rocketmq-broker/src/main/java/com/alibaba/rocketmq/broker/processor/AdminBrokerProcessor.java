@@ -80,6 +80,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
             throws RemotingCommandException {
+    	
+		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>AdminBrokerProcessor.request:" +request);
         switch (request.getCode()) {
         // 更新创建Topic
         case RequestCode.UPDATE_AND_CREATE_TOPIC:

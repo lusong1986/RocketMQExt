@@ -448,7 +448,7 @@ public class TopicConfigManager extends ConfigManager {
         Iterator<Entry<String, TopicConfig>> it = tcs.getTopicConfigTable().entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, TopicConfig> next = it.next();
-            log.info("load exist local topic, {}", next.getValue().toString());
+            log.info(">>>>>>>>>>>>>>>>>>>>>>TopicConfigManager.printLoadDataWhenFirstBoot>>>>>>>>>>load exist local topic, {}", next.getValue().toString());
         }
     }
 

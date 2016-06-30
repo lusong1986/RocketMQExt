@@ -66,7 +66,7 @@ public class ProcessQueue {
     private final TreeMap<Long, MessageExt> msgTreeMapTemp = new TreeMap<Long, MessageExt>();
     private final AtomicLong tryUnlockTimes = new AtomicLong(0);
 
-    private volatile long msgAccCnt = 0;
+    private volatile long msgAccCnt = 0; //消息堆积量
 
 
     public boolean isLockExpired() {

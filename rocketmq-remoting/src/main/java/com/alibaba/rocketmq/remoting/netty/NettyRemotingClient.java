@@ -233,6 +233,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             final ChannelEventListener channelEventListener) {
         super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig
             .getClientAsyncSemaphoreValue());
+        
+        log.info(">>>>>>>>>>>>NettyRemotingClient constructor..........");
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
 
@@ -261,6 +263,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     this.threadIndex.incrementAndGet()));
             }
         });
+        
+        log.info(">>>>>>>>>>>>NettyRemotingClient constructor eventLoopGroupWorker.........."+eventLoopGroupWorker);
     }
 
 
@@ -300,6 +304,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         new NettyClientHandler());
                 }
             });
+        
+        log.info(">>>>>>>>>>>>NettyRemotingClient start handler.........."+handler);
 
         this.timer.scheduleAtFixedRate(new TimerTask() {
 

@@ -20,10 +20,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
@@ -50,6 +52,7 @@ public class HAConnection {
 
 
     public HAConnection(final HAService haService, final SocketChannel socketChannel) throws IOException {
+    	log.info(">>>>>>>>>>>>>>HAConnection constrctor");
         this.haService = haService;
         this.socketChannel = socketChannel;
         this.clientAddr = this.socketChannel.socket().getRemoteSocketAddress().toString();
@@ -61,6 +64,11 @@ public class HAConnection {
         this.writeSocketService = new WriteSocketService(this.socketChannel);
         this.readSocketService = new ReadSocketService(this.socketChannel);
         this.haService.getConnectionCount().incrementAndGet();
+        
+    	log.info(">>>>>>>>>>>>>>HAConnection constrctor socketChannel:" +this.socketChannel);
+    	log.info(">>>>>>>>>>>>>>HAConnection constrctor writeSocketService:" +writeSocketService);
+    	log.info(">>>>>>>>>>>>>>HAConnection constrctor readSocketService:" +readSocketService);
+    	log.info(">>>>>>>>>>>>>>HAConnection constrctor, haConnectionCount, this.haService.getConnectionCount():" +  this.haService.getConnectionCount().get());
     }
 
 
@@ -70,12 +78,14 @@ public class HAConnection {
      */
 
     public void start() {
+    	log.info(">>>>>>>>>>>>>>HAConnection start socketChannel:" +JSON.toJSONString(socketChannel )+",clientAddr:" +clientAddr);
         this.readSocketService.start();
         this.writeSocketService.start();
     }
 
 
     public void shutdown() {
+       	log.info(">>>>>>>>>>>>>>HAConnection >><>>>>>>>>>>>>>shutdown socketChannel:" +socketChannel +",clientAddr:" +clientAddr);
         this.writeSocketService.shutdown(true);
         this.readSocketService.shutdown(true);
         this.close();
@@ -99,7 +109,7 @@ public class HAConnection {
     }
 
     /**
-     * 读取Slave请求，一般为push ack
+     * master读取Slave请求，一般为push ack
      * 
      * @author shijia.wxr<vintage.wang@gmail.com>
      */
@@ -113,6 +123,7 @@ public class HAConnection {
 
 
         public ReadSocketService(final SocketChannel socketChannel) throws IOException {
+        	log.info(">>>>>>>>>>>>>>ReadSocketService constructor socketChannel :"  + socketChannel);
             this.selector = RemotingUtil.openSelector();
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_READ);
@@ -123,7 +134,7 @@ public class HAConnection {
 
         @Override
         public void run() {
-            HAConnection.log.info(this.getServiceName() + " service started");
+            HAConnection.log.info(">>>>>>>>>>>>>>ReadSocketService.run>>>"+this.getServiceName() + " service started");
 
             while (!this.isStoped()) {
                 try {
@@ -140,13 +151,13 @@ public class HAConnection {
                                     - this.lastReadTimestamp;
                     if (interval > HAConnection.this.haService.getDefaultMessageStore()
                         .getMessageStoreConfig().getHaHousekeepingInterval()) {
-                        log.warn("ha housekeeping, found this connection[" + HAConnection.this.clientAddr
+                        log.warn(">>>>>>>>>>>>>>>>>>ReadSocketService.run>>>>ha housekeeping, found this connection[" + HAConnection.this.clientAddr
                                 + "] expired, " + interval);
                         break;
                     }
                 }
                 catch (Exception e) {
-                    HAConnection.log.error(this.getServiceName() + " service has exception.", e);
+                    HAConnection.log.error(">>>>>>>>>>>>>>>>>>ReadSocketService.run>>>>"+this.getServiceName() + " service has exception.", e);
                     break;
                 }
             }
@@ -172,7 +183,7 @@ public class HAConnection {
                 HAConnection.log.error("", e);
             }
 
-            HAConnection.log.info(this.getServiceName() + " service end");
+            HAConnection.log.info(">>>>>>>>>>>>>>>>>>ReadSocketService.run>>>>"+this.getServiceName() + " service end");
         }
 
 
@@ -196,15 +207,19 @@ public class HAConnection {
                             int pos = this.byteBufferRead.position() - (this.byteBufferRead.position() % 8);
                             long readOffset = this.byteBufferRead.getLong(pos - 8);
                             this.processPostion = pos;
+                            
+                            log.info(">>>>>>>>>>>>>>>>>>>>>>>>ReadSocketService.processReadEvent>>>slave[" + HAConnection.this.clientAddr +",processPostion:" +processPostion +",readSize:" +readSize +",pos:" +pos+ "] request offset "
+                                    + readOffset);
 
                             // 处理Slave的请求
                             HAConnection.this.slaveAckOffset = readOffset;
                             if (HAConnection.this.slaveRequestOffset < 0) {
                                 HAConnection.this.slaveRequestOffset = readOffset;
-                                log.info("slave[" + HAConnection.this.clientAddr + "] request offset "
-                                        + readOffset);
+                                log.info(">>>>>>>>>>>>>>>>>>>>>>>>ReadSocketService.processReadEvent>>>>>>>>slave[" + HAConnection.this.clientAddr + "] request offset "
+                                        + readOffset +">>>slaveRequestOffset:" +HAConnection.this.slaveRequestOffset );
                             }
 
+                            //log.info(">>>>>>>>>>>>>>>>>>>>>>>>ReadSocketService.processReadEvent>>>>>>>>call HAConnection.this.haService.notifyTransferSome to modify push2SlaveMaxOffset,HAConnection.this.slaveAckOffset:" +HAConnection.this.slaveAckOffset);
                             // 通知前端线程
                             HAConnection.this.haService.notifyTransferSome(HAConnection.this.slaveAckOffset);
                         }
@@ -257,12 +272,14 @@ public class HAConnection {
             this.socketChannel = socketChannel;
             this.socketChannel.register(this.selector, SelectionKey.OP_WRITE);
             this.thread.setDaemon(true);
+            
+            log.info(">>>>>>>>>>>>>>>>>>>>>>>>WriteSocketService constructor>>>>>>>>socketChannel:" + JSON.toJSONString( this.socketChannel ));
         }
 
 
         @Override
         public void run() {
-            HAConnection.log.info(this.getServiceName() + " service started");
+            HAConnection.log.info(">>>>>>>>>>>>>>>>>>>>>>>>WriteSocketService.run>>"+this.getServiceName() + " service started");
 
             while (!this.isStoped()) {
                 try {
@@ -271,6 +288,10 @@ public class HAConnection {
                     if (-1 == HAConnection.this.slaveRequestOffset) {
                         Thread.sleep(10);
                         continue;
+                    }
+
+                    if(new Random().nextInt(100)==1){
+                    	HAConnection.log.info(">>>>>>>>>>>>>>>>>>>>>>>>WriteSocketService.run>>nextTransferFromWhere:"+nextTransferFromWhere+ ",HAConnection.this.slaveRequestOffset:"+HAConnection.this.slaveRequestOffset);
                     }
 
                     // 第一次传输，需要计算从哪里开始
@@ -296,11 +317,12 @@ public class HAConnection {
                             this.nextTransferFromWhere = HAConnection.this.slaveRequestOffset;
                         }
 
-                        log.info("master transfer data from " + this.nextTransferFromWhere + " to slave["
+                        log.info(">>>>>>>>>>>>>>>>>>>>>>>>WriteSocketService.run>>master transfer data from " + this.nextTransferFromWhere + " to slave["
                                 + HAConnection.this.clientAddr + "], and slave request "
                                 + HAConnection.this.slaveRequestOffset);
                     }
 
+                   // log.info(">>>>>>>>>>>>>>>>>>>>>>>>WriteSocketService.run>>master transfer data from lastWriteOver:"+lastWriteOver );
                     if (this.lastWriteOver) {
                         // 如果长时间没有发消息则尝试发心跳
                         long interval =
@@ -334,7 +356,9 @@ public class HAConnection {
                     SelectMapedBufferResult selectResult =
                             HAConnection.this.haService.getDefaultMessageStore().getCommitLogData(
                                 this.nextTransferFromWhere);
+                   
                     if (selectResult != null) {
+                    	 log.info(">>>>>>>>>>>>>>>>>>>>>>>>WriteSocketService.run>>selectResult:]"+ selectResult.getStartOffset() +","+selectResult.getSize()+"], this.nextTransferFromWhere:"+ this.nextTransferFromWhere);
                         int size = selectResult.getSize();
                         if (size > HAConnection.this.haService.getDefaultMessageStore()
                             .getMessageStoreConfig().getHaTransferBatchSize()) {
@@ -357,6 +381,7 @@ public class HAConnection {
                         this.byteBufferHeader.flip();
 
                         this.lastWriteOver = this.transferData();
+                        log.info(">>>>>>>>>>>>>>>>>>>>>>>>WriteSocketService.run>>after transferData.thisOffset:"+thisOffset +", size:"+ size+", lastWriteOver:"+ lastWriteOver);
                     }
                     else {
                         // 没有数据，等待通知
@@ -401,6 +426,8 @@ public class HAConnection {
          * 表示是否传输完成
          */
         private boolean transferData() throws Exception {
+        	
+            log.info(">>>>>>>>>>>>>>>>>>>>>>>>WriteSocketService.transferData>>");
             int writeSizeZeroTimes = 0;
             // Write Header
             while (this.byteBufferHeader.hasRemaining()) {

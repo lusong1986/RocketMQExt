@@ -130,6 +130,70 @@ public class MessageStoreConfig {
     @ImportantField
     private boolean cleanFileForciblyEnable = true;
 
+	private String msgStoreType="mongo";//mongo or mysql
+	private String mongoRepSetHosts;
+	private String mongoDbName ;
+    
+	private String jdbcURL ;
+	private String jdbcUser ;
+	private String jdbcPassword ;
+	
+	public String getMongoRepSetHosts() {
+		return mongoRepSetHosts;
+	}
+
+	public void setMongoRepSetHosts(String mongoRepSetHosts) {
+		this.mongoRepSetHosts = mongoRepSetHosts;
+	}
+	
+    public String getMsgStoreType() {
+		return msgStoreType;
+	}
+
+
+	public void setMsgStoreType(String msgStoreType) {
+		this.msgStoreType = msgStoreType;
+	}
+
+
+	public String getMongoDbName() {
+		return mongoDbName;
+	}
+
+
+	public void setMongoDbName(String mongoDbName) {
+		this.mongoDbName = mongoDbName;
+	}
+
+
+	public String getJdbcURL() {
+		return jdbcURL;
+	}
+
+
+	public void setJdbcURL(String jdbcURL) {
+		this.jdbcURL = jdbcURL;
+	}
+
+
+	public String getJdbcUser() {
+		return jdbcUser;
+	}
+
+
+	public void setJdbcUser(String jdbcUser) {
+		this.jdbcUser = jdbcUser;
+	}
+
+
+	public String getJdbcPassword() {
+		return jdbcPassword;
+	}
+
+
+	public void setJdbcPassword(String jdbcPassword) {
+		this.jdbcPassword = jdbcPassword;
+	}
 
     public int getMapedFileSizeCommitLog() {
         return mapedFileSizeCommitLog;

@@ -684,7 +684,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                     group, 3000));
             }
         }
-        return null;
+        return spanSet;
     }
 
 

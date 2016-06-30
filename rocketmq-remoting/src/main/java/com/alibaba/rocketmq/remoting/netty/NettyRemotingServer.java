@@ -91,6 +91,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             final ChannelEventListener channelEventListener) {
         super(nettyServerConfig.getServerOnewaySemaphoreValue(), nettyServerConfig
             .getServerAsyncSemaphoreValue());
+        log.info(">>>>>>>>>>>>>>>>>>>>>>NettyRemotingServer constructor. nettyServerConfig:" +nettyServerConfig);
         this.serverBootstrap = new ServerBootstrap();
         this.nettyServerConfig = nettyServerConfig;
         this.channelEventListener = channelEventListener;

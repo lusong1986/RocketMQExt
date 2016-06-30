@@ -15,11 +15,13 @@
  */
 package com.alibaba.rocketmq.store.ha;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.remoting.common.RemotingUtil;
 import com.alibaba.rocketmq.store.CommitLog.GroupCommitRequest;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,16 +70,23 @@ public class HAService {
 
 
     public HAService(final DefaultMessageStore defaultMessageStore) throws IOException {
+    	
+    	log.info(">>>>>>>>>>>>>>>>>HAService constructor.");
         this.defaultMessageStore = defaultMessageStore;
         this.acceptSocketService =
                 new AcceptSocketService(defaultMessageStore.getMessageStoreConfig().getHaListenPort());
+        
+        log.info(">>>>>>>>>>>>>>>>>HAService constructoracceptSocketService:" +acceptSocketService);
         this.groupTransferService = new GroupTransferService();
         this.haClient = new HAClient();
+        log.info(">>>>>>>>>>>>>>>>>HAService constructor groupTransferService:" +groupTransferService);
+        log.info(">>>>>>>>>>>>>>>>>HAService constructor haClient:" +haClient);
     }
 
 
     public void updateMasterAddress(final String newAddr) {
         if (this.haClient != null) {
+            log.info(">>>>>>>>>>>>>>>>>HAService.updateMasterAddress newAddr:" +newAddr);
             this.haClient.updateMasterAddress(newAddr);
         }
     }
@@ -105,6 +114,7 @@ public class HAService {
      * 通知复制了部分数据
      */
     public void notifyTransferSome(final long offset) {
+        log.info(">>>>>>>>>>>>>>>>>HAService.notifyTransferSome offset:" +offset);
         for (long value = this.push2SlaveMaxOffset.get(); offset > value;) {
             boolean ok = this.push2SlaveMaxOffset.compareAndSet(value, offset);
             if (ok) {
@@ -184,6 +194,7 @@ public class HAService {
 
 
         public AcceptSocketService(final int port) {
+        	log.info(">>>>>>>>>>>>>>>>>>>AcceptSocketService constructor port:" +port);
             this.socketAddressListen = new InetSocketAddress(port);
         }
 
@@ -205,7 +216,7 @@ public class HAService {
 
         @Override
         public void run() {
-            log.info(this.getServiceName() + " service started");
+            log.info(">>>>>>>>>>>>>>AcceptSocketService.run>>>"+this.getServiceName() + " service started");
 
             while (!this.isStoped()) {
                 try {
@@ -216,11 +227,15 @@ public class HAService {
                             if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
                                 SocketChannel sc = ((ServerSocketChannel) k.channel()).accept();
                                 if (sc != null) {
-                                    HAService.log.info("HAService receive new connection, "
-                                            + sc.socket().getRemoteSocketAddress());
+                                    HAService.log.info(">>>>>>>>>>>>>>AcceptSocketService.run>>>>>>>>HAService receive new connection, "
+                                            + sc.socket().getRemoteSocketAddress() +", SocketChannel:" +sc);
+//                                    HAService.log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>HAService receive new connection, "
+//                                            + sc.socket().getRemoteSocketAddress());
 
                                     try {
                                         HAConnection conn = new HAConnection(HAService.this, sc);
+                                        HAService.log.info(">>>>>>>>>>>>>>AcceptSocketService.run>>>>>>>>>>>>>>>>>>HAService receive new connection, "
+                                                + conn);
                                         conn.start();
                                         HAService.this.addConnection(conn);
                                     }
@@ -244,7 +259,7 @@ public class HAService {
                 }
             }
 
-            log.error(this.getServiceName() + " service end");
+            log.error(">>>>>>>>>>>>>>AcceptSocketService.run>>>"+this.getServiceName() + " service end");
         }
 
 
@@ -265,7 +280,8 @@ public class HAService {
 
 
         public void putRequest(final GroupCommitRequest request) {
-            synchronized (this) {
+        	log.info("###############GroupTransferService.putRequest>>>request:+request");
+        	synchronized (this) {
                 this.requestsWrite.add(request);
                 if (!this.hasNotified) {
                     this.hasNotified = true;
@@ -280,11 +296,13 @@ public class HAService {
 
 
         public void notifyTransferSome() {
+            log.info("###############GroupTransferService.notifyTransferSome.. ");
             this.notifyTransferObject.wakeup();
         }
 
 
         private void swapRequests() {
+        	log.info("###############call GroupTransferService.swapRequests after onWaitEnd()");
             List<GroupCommitRequest> tmp = this.requestsWrite;
             this.requestsWrite = this.requestsRead;
             this.requestsRead = tmp;
@@ -292,28 +310,33 @@ public class HAService {
 
 
         private void doWaitTransfer() {
+           	log.info("############### GroupTransferService.doWaitTransfer ONLY TO WAIT transfer finished..>>>>>>>>>>>>requestsRead.SIZE:"+requestsRead.size());
             if (!this.requestsRead.isEmpty()) {
                 for (GroupCommitRequest req : this.requestsRead) {
+                	log.info("###############GroupTransferService.doWaitTransfer GroupCommitRequest:" +JSON.toJSONString(req));
+                	
                     boolean transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                     for (int i = 0; !transferOK && i < 5; i++) {
                         this.notifyTransferObject.waitForRunning(1000);
                         transferOK = HAService.this.push2SlaveMaxOffset.get() >= req.getNextOffset();
                     }
+                    log.info("###############GroupTransferService.doWaitTransfer transferOK:" +transferOK);
 
                     if (!transferOK) {
-                        log.warn("transfer message to slave timeout, " + req.getNextOffset());
+                        log.warn("###############doWaitTransfer.transfer message to slave timeout, req.getNextOffset():" + req.getNextOffset());
                     }
 
+                    log.info("###############GroupTransferService.doWaitTransfer call req.wakeupCustomer:" +transferOK +",req:"+JSON.toJSONString(req));
                     req.wakeupCustomer(transferOK);
                 }
-
+                
                 this.requestsRead.clear();
             }
         }
 
 
         public void run() {
-            log.info(this.getServiceName() + " service started");
+            log.info("###############GroupTransferService.run>>>>"+this.getServiceName() + " service started");
 
             while (!this.isStoped()) {
                 try {
@@ -325,7 +348,7 @@ public class HAService {
                 }
             }
 
-            log.info(this.getServiceName() + " service end");
+            log.info("###############GroupTransferService.run>>>>"+this.getServiceName() + " service end");
         }
 
 
@@ -360,6 +383,7 @@ public class HAService {
 
         public HAClient() throws IOException {
             this.selector = RemotingUtil.openSelector();
+            log.info(">>>>>>>>>>>>>>>>>>>HAClient constructor selector:" +selector);
         }
 
 
@@ -367,7 +391,7 @@ public class HAService {
             String currentAddr = this.masterAddress.get();
             if (currentAddr == null || !currentAddr.equals(newAddr)) {
                 this.masterAddress.set(newAddr);
-                log.info("update master address, OLD: " + currentAddr + " NEW: " + newAddr);
+                log.info(">>>>>>>>>>>>>>>>HAClient.updateMasterAddress update master address, OLD: " + currentAddr + " NEW: " + newAddr);
             }
         }
 
@@ -384,6 +408,7 @@ public class HAService {
 
 
         private boolean reportSlaveMaxOffset(final long maxOffset) {
+        	log.info(">>>>>>>>>>>>>>>>>>>>>>>>>on slave >>HAService.reportSlaveMaxOffset>>maxOffset:" +maxOffset);
             this.reportOffset.position(0);
             this.reportOffset.limit(8);
             this.reportOffset.putLong(maxOffset);
@@ -449,9 +474,10 @@ public class HAService {
                     if (readSize > 0) {
                         lastWriteTimestamp = HAService.this.defaultMessageStore.getSystemClock().now();
                         readSizeZeroTimes = 0;
+                        log.info(">>>>>>>>>>>>>>>>>>>>>>>HAClient.processReadEvent call dispatchReadRequest. readSize:" +readSize);
                         boolean result = this.dispatchReadRequest();
                         if (!result) {
-                            log.error("HAClient, dispatchReadRequest error");
+                            log.error(">>>>>>>>>>HAClient.processReadEvent, dispatchReadRequest error");
                             return false;
                         }
                     }
@@ -462,7 +488,7 @@ public class HAService {
                     }
                     else {
                         // TODO ERROR
-                        log.info("HAClient, processReadEvent read socket < 0");
+                        log.info(">>>>>>>>>>>>>HAClient, processReadEvent read socket < 0");
                         return false;
                     }
                 }
@@ -491,20 +517,25 @@ public class HAService {
                     // 发生重大错误
                     if (slavePhyOffset != 0) {
                         if (slavePhyOffset != masterPhyOffset) {
-                            log.error("master pushed offset not equal the max phy offset in slave, SLAVE: "
+                            log.error(">>>>>>>>>>>>master pushed offset not equal the max phy offset in slave, SLAVE: "
                                     + slavePhyOffset + " MASTER: " + masterPhyOffset);
                             return false;
                         }
                     }
 
+                    log.info(">>>>>>>>>>>>>>HAClient.dispatchReadRequest  diff:" +diff +",this.dispatchPosition :" +this.dispatchPosition +",bodySize:" +bodySize +",slavePhyOffset:" +slavePhyOffset +",masterPhyOffset:" +masterPhyOffset);
                     // 可以凑够一个请求
                     if (diff >= (MSG_HEADER_SIZE + bodySize)) {
                         byte[] bodyData = new byte[bodySize];
                         this.byteBufferRead.position(this.dispatchPosition + MSG_HEADER_SIZE);
                         this.byteBufferRead.get(bodyData);
 
+                        if(bodySize>0){
+                        	log.info(">>>>>>>>>>>>>>HAClient.dispatchReadRequest, start call defaultMessageStore.appendToCommitLog, masterPhyOffset:" +masterPhyOffset );
+                        }
                         // TODO 结果是否需要处理，暂时不处理
                         HAService.this.defaultMessageStore.appendToCommitLog(masterPhyOffset, bodyData);
+                        
 
                         this.byteBufferRead.position(readSocketPos);
                         this.dispatchPosition += MSG_HEADER_SIZE + bodySize;
@@ -535,6 +566,7 @@ public class HAService {
             if (currentPhyOffset > this.currentReportedOffset) {
                 this.currentReportedOffset = currentPhyOffset;
                 result = this.reportSlaveMaxOffset(this.currentReportedOffset);
+                log.info(">>>>>>>>>>>>>>>>HAClient.reportSlaveMaxOffsetPlus>>>>>>>>>>>>>>call reportSlaveMaxOffset. currentReportedOffset:" +currentReportedOffset +",result:"+result);
                 if (!result) {
                     this.closeMaster();
                     log.error("HAClient, reportSlaveMaxOffset error, " + this.currentReportedOffset);
@@ -547,9 +579,10 @@ public class HAService {
 
         private boolean connectMaster() throws ClosedChannelException {
             if (null == socketChannel) {
+            
                 String addr = this.masterAddress.get();
                 if (addr != null) {
-
+                  	log.info(">>>>>>>>>>>>>>>HAClient.connectMaster>>>>>>>>>>>>masterAddress:" +addr);
                     SocketAddress socketAddress = RemotingUtil.string2SocketAddress(addr);
                     if (socketAddress != null) {
                         this.socketChannel = RemotingUtil.connect(socketAddress);
@@ -561,6 +594,9 @@ public class HAService {
 
                 // 每次连接时，要重新拿到最大的Offset
                 this.currentReportedOffset = HAService.this.defaultMessageStore.getMaxPhyOffset();
+                if (addr != null) {
+                	log.info(">>>>>>>>>>>>>>>HAClient.connectMaster>>>>>>>>>>>>currentReportedOffset on slave:" +currentReportedOffset);
+                }
 
                 this.lastWriteTimestamp = System.currentTimeMillis();
             }
@@ -600,7 +636,7 @@ public class HAService {
 
         @Override
         public void run() {
-            log.info(this.getServiceName() + " service started");
+            log.info(">>>>>>>>>>>>>>>>>HAClient run>>>>>"+this.getServiceName() + " service started");
 
             while (!this.isStoped()) {
                 try {
@@ -618,7 +654,9 @@ public class HAService {
 
                         // 接收数据
                         boolean ok = this.processReadEvent();
+                        
                         if (!ok) {
+                        	 log.info(">>>>>>>>>>>>>>>>>HAClient run>>>>>call closeMaster");
                             this.closeMaster();
                         }
 

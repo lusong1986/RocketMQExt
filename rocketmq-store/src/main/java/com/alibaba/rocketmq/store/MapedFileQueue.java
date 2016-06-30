@@ -160,6 +160,10 @@ public class MapedFileQueue {
             // ascending order
             Arrays.sort(files);
             for (File file : files) {
+                if(!file.getAbsolutePath().contains("BenchmarkTest")){
+                	log.info(">>>>>>>>>>>>>>>>MapedFileQueue.load file: " +file.getAbsolutePath() +",name:"+file.getName() +",length:"+file.length());
+                }
+            	
                 // 校验文件大小是否匹配
                 if (file.length() != this.mapedFileSize) {
                     log.warn(file + "\t" + file.length()
@@ -174,7 +178,10 @@ public class MapedFileQueue {
                     mapedFile.setWrotePostion(this.mapedFileSize);
                     mapedFile.setCommittedPosition(this.mapedFileSize);
                     this.mapedFiles.add(mapedFile);
-                    log.info("load " + file.getPath() + " OK");
+                    
+                    if(!file.getPath().contains("BenchmarkTest")){
+                    	log.info("load " + file.getPath() + " OK");
+                    }
                 }
                 catch (IOException e) {
                     log.error("load file " + file + " error", e);
@@ -466,7 +473,7 @@ public class MapedFileQueue {
                 if (index < 0 || index >= this.mapedFiles.size()) {
                     logError
                         .warn(
-                            "findMapedFileByOffset offset not matched, request Offset: {}, index: {}, mapedFileSize: {}, mapedFiles count: {}, StackTrace: {}",//
+                            ">>>>>>>>>>>>>>>>MapedFileQueue.findMapedFileByOffset>>>>>>>>>>>>>>>>findMapedFileByOffset offset not matched, request Offset: {}, index: {}, mapedFileSize: {}, mapedFiles count: {}, StackTrace: {}",//
                             offset,//
                             index,//
                             this.mapedFileSize,//
