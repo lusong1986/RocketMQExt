@@ -527,16 +527,21 @@ public class CommitLog {
 						// XXX: warn and notify me
 						log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: "
 								+ msg.getBornHostString());
+
+						CatUtils.catException(transaction, new CatException("CREATE_MAPEDFILE_FAILED"));
 						return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
 					}
 					result = mapedFile.appendMessage(msg, this.appendMessageCallback);
 					CatUtils.catSuccess(transaction);
 					break;
 				case MESSAGE_SIZE_EXCEEDED:
+					CatUtils.catException(transaction, new CatException("MESSAGE_SIZE_EXCEEDED"));
 					return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
 				case UNKNOWN_ERROR:
+					CatUtils.catException(transaction, new CatException("UNKNOWN_ERROR"));
 					return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
 				default:
+					CatUtils.catException(transaction, new CatException("UNKNOWN_ERROR"));
 					return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
 				}
 
@@ -612,7 +617,6 @@ public class CommitLog {
 				// Determine whether to wait
 				Transaction syncTransaction = CatUtils.catTransaction(CatDataConstants.COMMITLOG,
 						CatDataConstants.SYNC_TO_SLAVE);
-
 				try {
 					if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
 						if (null == request) {
@@ -636,14 +640,14 @@ public class CommitLog {
 									+ " client address: "
 									+ msg.getBornHostString());
 							putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
-							CatUtils.catException(transaction, new CatException("FLUSH_SLAVE_TIMEOUT"));
+							CatUtils.catException(syncTransaction, new CatException("FLUSH_SLAVE_TIMEOUT"));
 						} else {
-							CatUtils.catSuccess(transaction);
+							CatUtils.catSuccess(syncTransaction);
 						}
 					}
 					// Slave problem
 					else {
-						CatUtils.catException(transaction, new CatException("SLAVE_NOT_AVAILABLE"));
+						CatUtils.catException(syncTransaction, new CatException("SLAVE_NOT_AVAILABLE"));
 						// Tell the producer, slave not available
 						putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
 					}
