@@ -27,6 +27,9 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.ServiceThread;
 import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.cat.CatDataConstants;
+import com.alibaba.rocketmq.common.cat.CatException;
+import com.alibaba.rocketmq.common.cat.CatUtils;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageAccessor;
 import com.alibaba.rocketmq.common.message.MessageConst;
@@ -37,6 +40,7 @@ import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.FlushDiskType;
 import com.alibaba.rocketmq.store.ha.HAService;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
+import com.dianping.cat.message.Transaction;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -491,66 +495,75 @@ public class CommitLog {
 
 		// https://yq.aliyun.com/articles/52533?spm=5176.100240.searchblog.12.W4UhIH
 		// 如何保证并发安全，在写数据前，需要抢占一个锁，因为这只是把数据写到文件系统缓存中，所以持有锁的时间非常短，对性能友好。请看代码
+
+		Transaction transaction = CatUtils.catTransaction(CatDataConstants.COMMITLOG,
+				CatDataConstants.MAPEDFILE_APPEND_MESSAGE);
 		long eclipseTimeInLock = 0;
-		synchronized (this) {
-			long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+		try {
+			synchronized (this) {
+				long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
 
-			// Here settings are stored timestamp, in order to ensure an orderly
-			// global
-			msg.setStoreTimestamp(beginLockTimestamp);
+				// Here settings are stored timestamp, in order to ensure an orderly
+				// global
+				msg.setStoreTimestamp(beginLockTimestamp);
 
-			MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile();
-			if (null == mapedFile) {
-				log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: "
-						+ msg.getBornHostString());
-				return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
-			}
-			result = mapedFile.appendMessage(msg, this.appendMessageCallback);
-			log.info(">>>>>>>>>>>>>>>>CommitLog.putMessage>>>>>>>>>>CALL mapedFile.appendMessage, result:"
-					+ JSON.toJSONString(result));
-			switch (result.getStatus()) {
-			case PUT_OK:
-				break;
-			case END_OF_FILE:
-				// Create a new file, re-write the message
-				mapedFile = this.mapedFileQueue.getLastMapedFile();
+				MapedFile mapedFile = this.mapedFileQueue.getLastMapedFile();
 				if (null == mapedFile) {
-					// XXX: warn and notify me
-					log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: "
+					log.error("create maped file1 error, topic: " + msg.getTopic() + " clientAddr: "
 							+ msg.getBornHostString());
-					return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
+					return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, null);
 				}
 				result = mapedFile.appendMessage(msg, this.appendMessageCallback);
-				break;
-			case MESSAGE_SIZE_EXCEEDED:
-				return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
-			case UNKNOWN_ERROR:
-				return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
-			default:
-				return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
-			}
+				log.info(">>>>>>>>>>>>>>>>CommitLog.putMessage>>>>>>>>>>CALL mapedFile.appendMessage, result:"
+						+ JSON.toJSONString(result));
+				switch (result.getStatus()) {
+				case PUT_OK:
+					CatUtils.catSuccess(transaction);
+					break;
+				case END_OF_FILE:
+					// Create a new file, re-write the message
+					mapedFile = this.mapedFileQueue.getLastMapedFile();
+					if (null == mapedFile) {
+						// XXX: warn and notify me
+						log.error("create maped file2 error, topic: " + msg.getTopic() + " clientAddr: "
+								+ msg.getBornHostString());
+						return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
+					}
+					result = mapedFile.appendMessage(msg, this.appendMessageCallback);
+					CatUtils.catSuccess(transaction);
+					break;
+				case MESSAGE_SIZE_EXCEEDED:
+					return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result);
+				case UNKNOWN_ERROR:
+					return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
+				default:
+					return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result);
+				}
 
-			DispatchRequest dispatchRequest = new DispatchRequest(//
-					topic,// 1
-					queueId,// 2
-					result.getWroteOffset(),// 3
-					result.getWroteBytes(),// 4
-					tagsCode,// 5
-					msg.getStoreTimestamp(),// 6
-					result.getLogicsOffset(),// 7
-					msg.getKeys(),// 8
-					/**
-					 * Transaction
-					 */
-					msg.getSysFlag(),// 9
-					msg.getPreparedTransactionOffset());// 10
+				DispatchRequest dispatchRequest = new DispatchRequest(//
+						topic,// 1
+						queueId,// 2
+						result.getWroteOffset(),// 3
+						result.getWroteBytes(),// 4
+						tagsCode,// 5
+						msg.getStoreTimestamp(),// 6
+						result.getLogicsOffset(),// 7
+						msg.getKeys(),// 8
+						/**
+						 * Transaction
+						 */
+						msg.getSysFlag(),// 9
+						msg.getPreparedTransactionOffset());// 10
 
-			log.info(">>>>>>>>>>>>>>>>master CommitLog.putMessage, call defaultMessageStore.dispatchRequest:"
-					+ JSON.toJSONString(dispatchRequest));
-			this.defaultMessageStore.putDispatchRequest(dispatchRequest);
+				log.info(">>>>>>>>>>>>>>>>master CommitLog.putMessage, call defaultMessageStore.dispatchRequest:"
+						+ JSON.toJSONString(dispatchRequest));
+				this.defaultMessageStore.putDispatchRequest(dispatchRequest);
 
-			eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-		} // end of synchronized
+				eclipseTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+			} // end of synchronized
+		} finally {
+			CatUtils.catComplete(transaction);
+		}
 
 		if (eclipseTimeInLock > 1000) {
 			// XXX: warn and notify me
@@ -597,34 +610,45 @@ public class CommitLog {
 			// log.info(">>>>>>>>>>>>>>>>>>>>>haservice:" + JSON.toJSONString(service));
 			if (msg.isWaitStoreMsgOK()) {
 				// Determine whether to wait
-				if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
-					if (null == request) {
-						request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
-					}
-					log.info(">>>>>>>>>>>>>>>>>>>>>GroupCommitRequest:" + JSON.toJSONString(request)
-							+ ", will flush to slave.");
-					service.putRequest(request);
+				Transaction syncTransaction = CatUtils.catTransaction(CatDataConstants.COMMITLOG,
+						CatDataConstants.SYNC_TO_SLAVE);
 
-					service.getWaitNotifyObject().wakeupAll(); // notify WriteSocketService to write to slave
+				try {
+					if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
+						if (null == request) {
+							request = new GroupCommitRequest(result.getWroteOffset() + result.getWroteBytes());
+						}
+						log.info(">>>>>>>>>>>>>>>>>>>>>GroupCommitRequest:" + JSON.toJSONString(request)
+								+ ", will flush to slave.");
+						service.putRequest(request);
 
-					boolean flushOK =
-					// TODO
-					request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
-					log.info(">>>>>>>>>>>>>>>>>>>>>CommitLog.putMessage, flushOK:" + flushOK);
-					if (!flushOK) {
-						log.error(">>>>>>>>>>>CommitLog.putMessage>>>>>>>do sync transfer other node, wait return, but failed, topic: "
-								+ msg.getTopic()
-								+ " tags: "
-								+ msg.getTags()
-								+ " client address: "
-								+ msg.getBornHostString());
-						putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
+						service.getWaitNotifyObject().wakeupAll(); // notify WriteSocketService to write to slave
+
+						boolean flushOK =
+						// TODO
+						request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+						log.info(">>>>>>>>>>>>>>>>>>>>>CommitLog.putMessage, flushOK:" + flushOK);
+						if (!flushOK) {
+							log.error(">>>>>>>>>>>CommitLog.putMessage>>>>>>>do sync transfer other node, wait return, but failed, topic: "
+									+ msg.getTopic()
+									+ " tags: "
+									+ msg.getTags()
+									+ " client address: "
+									+ msg.getBornHostString());
+							putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
+							CatUtils.catException(transaction, new CatException("FLUSH_SLAVE_TIMEOUT"));
+						} else {
+							CatUtils.catSuccess(transaction);
+						}
 					}
-				}
-				// Slave problem
-				else {
-					// Tell the producer, slave not available
-					putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
+					// Slave problem
+					else {
+						CatUtils.catException(transaction, new CatException("SLAVE_NOT_AVAILABLE"));
+						// Tell the producer, slave not available
+						putMessageResult.setPutMessageStatus(PutMessageStatus.SLAVE_NOT_AVAILABLE);
+					}
+				} finally {
+					CatUtils.catComplete(syncTransaction);
 				}
 			}
 		}
