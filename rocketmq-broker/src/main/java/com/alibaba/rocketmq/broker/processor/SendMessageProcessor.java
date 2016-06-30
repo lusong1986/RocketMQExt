@@ -32,6 +32,8 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
 import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.cat.CatDataConstants;
+import com.alibaba.rocketmq.common.cat.CatUtils;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.help.FAQUrl;
 import com.alibaba.rocketmq.common.message.MessageAccessor;
@@ -53,6 +55,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
+import com.dianping.cat.message.Transaction;
 
 /**
  * 处理客户端发送消息的请求
@@ -70,28 +73,55 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 	public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
 			throws RemotingCommandException {
 		SendMessageContext mqtraceContext = null;
+		RemotingCommand response = null;
+		Transaction transaction = null;
 		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>SendMessageProcessor.processRequest:" + JSON.toJSONString(request));
+
 		switch (request.getCode()) {
 		case RequestCode.CONSUMER_SEND_MSG_BACK:
-			return this.consumerSendMsgBack(ctx, request);
+
+			transaction = CatUtils.catTransaction(CatDataConstants.SEND_MESSAGE_PROCESSOR,
+					CatDataConstants.CONSUMER_SEND_MSG_BACK);
+			try {
+				response = this.consumerSendMsgBack(ctx, request);
+				CatUtils.catSuccess(transaction);
+			} catch (RemotingCommandException e) {
+				CatUtils.catException(transaction, e);
+				throw e;
+			} finally {
+				CatUtils.catComplete(transaction);
+			}
+
+			return response;
 		default: // RequestCode.SEND_MESSAGE, RequestCode.SEND_MESSAGE_V2
 
-			SendMessageRequestHeader requestHeader = parseRequestHeader(request);
-			if (requestHeader == null) {
-				return null;
+			transaction = CatUtils.catTransaction(CatDataConstants.SEND_MESSAGE_PROCESSOR,
+					CatDataConstants.SEND_MESSAGE_V2);
+			try {
+				SendMessageRequestHeader requestHeader = parseRequestHeader(request);
+				if (requestHeader == null) {
+					return null;
+				}
+				// 消息轨迹：记录到达 broker 的消息
+				mqtraceContext = buildMsgContext(ctx, requestHeader);
+
+				log.info(">>>>>>>>>>>>>>>>>>>>>>>>>SendMessageProcessor.processRequest, mqtraceContext:"
+						+ JSON.toJSONString(mqtraceContext));
+				this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+				response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
+
+				log.info(">>>>>>>>>>>>>>>>>>>>>>>>>SendMessageProcessor.processRequest, response:"
+						+ JSON.toJSONString(response));
+				// 消息轨迹：记录发送成功的消息
+				this.executeSendMessageHookAfter(response, mqtraceContext);
+
+				CatUtils.catSuccess(transaction);
+			} catch (RemotingCommandException e) {
+				CatUtils.catException(transaction, e);
+				throw e;
+			} finally {
+				CatUtils.catComplete(transaction);
 			}
-			// 消息轨迹：记录到达 broker 的消息
-			mqtraceContext = buildMsgContext(ctx, requestHeader);
-
-			log.info(">>>>>>>>>>>>>>>>>>>>>>>>>SendMessageProcessor.processRequest, mqtraceContext:"
-					+ JSON.toJSONString(mqtraceContext));
-			this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
-			RemotingCommand response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
-
-			log.info(">>>>>>>>>>>>>>>>>>>>>>>>>SendMessageProcessor.processRequest, response:"
-					+ JSON.toJSONString(response));
-			// 消息轨迹：记录发送成功的消息
-			this.executeSendMessageHookAfter(response, mqtraceContext);
 
 			return response;
 		}
@@ -99,6 +129,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
 	private RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
 			throws RemotingCommandException {
+
 		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		final ConsumerSendMsgBackRequestHeader requestHeader = (ConsumerSendMsgBackRequestHeader) request
 				.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
