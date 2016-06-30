@@ -1,1 +1,0 @@
-mvn -U eclipse:eclipse
