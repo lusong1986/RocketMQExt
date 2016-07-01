@@ -12,6 +12,20 @@
  */
 package com.alibaba.rocketmq.broker.processor;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.FileRegion;
+
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
@@ -21,6 +35,8 @@ import com.alibaba.rocketmq.broker.pagecache.ManyMessageTransfer;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
+import com.alibaba.rocketmq.common.cat.CatDataConstants;
+import com.alibaba.rocketmq.common.cat.CatUtils;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
@@ -44,14 +60,7 @@ import com.alibaba.rocketmq.store.GetMessageResult;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
-import io.netty.channel.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.List;
-import java.util.Map;
+import com.dianping.cat.message.Transaction;
 
 /**
  * 拉消息请求处理
@@ -72,7 +81,22 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 	public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
 			throws RemotingCommandException {
 		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>PullMessageProcessor.processRequest:" + request);
-		return this.processRequest(ctx.channel(), request, true);
+
+		Transaction transaction = CatUtils.catTransaction(CatDataConstants.PULLMESSAGE_PROCESSOR,
+				CatDataConstants.GETMESSAGE);
+
+		RemotingCommand response = null;
+		try {
+			response = this.processRequest(ctx.channel(), request, true);
+			CatUtils.catSuccess(transaction);
+		} catch (RemotingCommandException e) {
+			CatUtils.catException(transaction, e);
+			throw e;
+		} finally {
+			CatUtils.catComplete(transaction);
+		}
+
+		return response;
 	}
 
 	public void excuteRequestWhenWakeup(final Channel channel, final RemotingCommand request)
@@ -274,7 +298,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 		final GetMessageResult getMessageResult = this.brokerController.getMessageStore().getMessage(
 				requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(),
 				requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), subscriptionData);
-		
+
 		log.debug(">>>>>>>>>>>>>>>>>>PullMessageProcessor>>>>>>>>>>>getMessageResult:" + getMessageResult);
 		if (getMessageResult != null) {
 			response.setRemark(getMessageResult.getStatus().name());
@@ -312,7 +336,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 							requestHeader.getQueueOffset() + getMessageResult.getMessageCount(), storeHost);
 					context.setMessageIds(messageIds);
 					log.debug(">>>>>>>>>>>>>>>>>>PullMessageProcessor>>>>>>>>>>>messageIds:" + messageIds);
-					
+
 					context.setBodyLength(getMessageResult.getBufferTotalSize() / getMessageResult.getMessageCount());
 					this.executeConsumeMessageHookBefore(context);
 				}
@@ -455,7 +479,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 				&& this.brokerController.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE;
 		log.debug(">>>>>>>>>>>>>>>>>>PullMessageProcessor>>>>>>>>>>>storeOffsetEnable:" + storeOffsetEnable);
 		if (storeOffsetEnable) {
-			log.debug(">>>>>>>>>>>>>>>>>>PullMessageProcessor.getConsumerOffsetManager().commitOffset>>>>>>>>>>>commitOffset:" + requestHeader.getCommitOffset() +",requestHeader.getQueueId():"+requestHeader.getQueueId());
+			log.debug(">>>>>>>>>>>>>>>>>>PullMessageProcessor.getConsumerOffsetManager().commitOffset>>>>>>>>>>>commitOffset:"
+					+ requestHeader.getCommitOffset() + ",requestHeader.getQueueId():" + requestHeader.getQueueId());
 			this.brokerController.getConsumerOffsetManager().commitOffset(requestHeader.getConsumerGroup(),
 					requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getCommitOffset());
 		}

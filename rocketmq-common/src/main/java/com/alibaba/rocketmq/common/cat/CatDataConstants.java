@@ -12,5 +12,10 @@ public class CatDataConstants {
 	public final static String MAPEDFILE_APPEND_MESSAGE = "MAPEDFILE_APPEND_MESSAGE";
 	
 	public final static String SYNC_TO_SLAVE = "SYNC_TO_SLAVE";
+	
+	public final static String PULLMESSAGE_PROCESSOR = "PullMessageProcessor";
+	
+	public final static String GETMESSAGE = "getMessage";
+	
 
 }
