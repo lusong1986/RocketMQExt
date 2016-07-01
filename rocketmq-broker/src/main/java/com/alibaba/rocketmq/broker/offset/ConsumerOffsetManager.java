@@ -155,7 +155,7 @@ public class ConsumerOffsetManager extends ConfigManager {
 			map.put(queueId, offset);
 		}
 
-		log.info(">>>>>>>>>>>>>after commitOffset, offsetTable:" + offsetTable);
+		//log.info(">>>>>>>>>>>>>after commitOffset, offsetTable:" + offsetTable);
 	}
 
 	public String encode() {
