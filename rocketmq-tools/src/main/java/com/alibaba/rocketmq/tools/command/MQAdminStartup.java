@@ -192,6 +192,7 @@ public class MQAdminStartup {
 
 
     private static void initLogback() throws JoranException {
+    	//System.setProperty(MixAll.ROCKETMQ_HOME_PROPERTY, "C:\\lusong\\mq");
         String rocketmqHome =
                 System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
 
