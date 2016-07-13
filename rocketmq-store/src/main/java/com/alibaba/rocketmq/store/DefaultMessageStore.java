@@ -446,7 +446,6 @@ public class DefaultMessageStore implements MessageStore {
 		try {
 			result = this.commitLog.putMessage(msg);
 			log.info(">>>>>>>>>>>>>>>>DefaultMessageStore.putMessage>>>>>>>>>>result:" + JSON.toJSONString(result));
-			transaction.addData("PutMessageResult", result);
 			CatUtils.catSuccess(transaction);
 		} finally {
 			CatUtils.catComplete(transaction);
