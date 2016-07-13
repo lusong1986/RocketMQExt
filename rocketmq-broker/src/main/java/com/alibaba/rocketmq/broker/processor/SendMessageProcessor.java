@@ -55,6 +55,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
+import com.dianping.cat.Cat;
 import com.dianping.cat.message.Transaction;
 
 /**
@@ -80,8 +81,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		switch (request.getCode()) {
 		case RequestCode.CONSUMER_SEND_MSG_BACK:
 
-			transaction = CatUtils.catTransaction(CatDataConstants.SEND_MESSAGE_PROCESSOR,
-					CatDataConstants.CONSUMER_SEND_MSG_BACK);
+			transaction = CatUtils.catTransaction(CatDataConstants.CONSUMER_SEND_MSG_BACK, JSON.toJSONString(request));
 			try {
 				response = this.consumerSendMsgBack(ctx, request);
 				CatUtils.catSuccess(transaction);
@@ -95,19 +95,18 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 			return response;
 		default: // RequestCode.SEND_MESSAGE, RequestCode.SEND_MESSAGE_V2
 
-			transaction = CatUtils.catTransaction(CatDataConstants.SEND_MESSAGE_PROCESSOR,
-					CatDataConstants.SEND_MESSAGE_V2);
-			try {
-				SendMessageRequestHeader requestHeader = parseRequestHeader(request);
-				if (requestHeader == null) {
-					return null;
-				}
-				// 消息轨迹：记录到达 broker 的消息
-				mqtraceContext = buildMsgContext(ctx, requestHeader);
+			SendMessageRequestHeader requestHeader = parseRequestHeader(request);
+			if (requestHeader == null) {
+				return null;
+			}
+			// 消息轨迹：记录到达 broker 的消息
+			mqtraceContext = buildMsgContext(ctx, requestHeader);
 
-				log.info(">>>>>>>>>>>>>>>>>>>>>>>>>SendMessageProcessor.processRequest, mqtraceContext:"
-						+ JSON.toJSONString(mqtraceContext));
-				this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+			this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+
+			Cat.buildContextFromMQ(MessageDecoder.string2messageProperties(requestHeader.getProperties()));
+			transaction = CatUtils.catTransaction(CatDataConstants.SEND_MESSAGE_V2, JSON.toJSONString(request));
+			try {
 				response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
 
 				log.info(">>>>>>>>>>>>>>>>>>>>>>>>>SendMessageProcessor.processRequest, response:"

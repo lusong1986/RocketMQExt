@@ -496,8 +496,7 @@ public class CommitLog {
 		// https://yq.aliyun.com/articles/52533?spm=5176.100240.searchblog.12.W4UhIH
 		// 如何保证并发安全，在写数据前，需要抢占一个锁，因为这只是把数据写到文件系统缓存中，所以持有锁的时间非常短，对性能友好。请看代码
 
-		Transaction transaction = CatUtils.catTransaction(CatDataConstants.COMMITLOG,
-				CatDataConstants.MAPEDFILE_APPEND_MESSAGE);
+		Transaction transaction = CatUtils.catTransaction(CatDataConstants.MAPEDFILE_APPEND_MESSAGE, msg.toString());
 		long eclipseTimeInLock = 0;
 		try {
 			synchronized (this) {
@@ -615,8 +614,8 @@ public class CommitLog {
 			// log.info(">>>>>>>>>>>>>>>>>>>>>haservice:" + JSON.toJSONString(service));
 			if (msg.isWaitStoreMsgOK()) {
 				// Determine whether to wait
-				Transaction syncTransaction = CatUtils.catTransaction(CatDataConstants.COMMITLOG,
-						CatDataConstants.SYNC_TO_SLAVE);
+				Transaction syncTransaction = CatUtils.catTransaction(CatDataConstants.SYNC_TO_SLAVE,
+						JSON.toJSONString(result));
 				try {
 					if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
 						if (null == request) {
