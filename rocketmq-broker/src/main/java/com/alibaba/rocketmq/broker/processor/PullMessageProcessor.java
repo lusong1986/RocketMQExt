@@ -82,20 +82,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 			throws RemotingCommandException {
 		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>PullMessageProcessor.processRequest:" + request);
 
-		Transaction transaction = CatUtils.catTransaction(CatDataConstants.PULLMESSAGE_PROCESSOR,
-				CatDataConstants.GETMESSAGE);
-
-		RemotingCommand response = null;
-		try {
-			response = this.processRequest(ctx.channel(), request, true);
-			CatUtils.catSuccess(transaction);
-		} catch (RemotingCommandException e) {
-			CatUtils.catException(transaction, e);
-			throw e;
-		} finally {
-			CatUtils.catComplete(transaction);
-		}
-
+		RemotingCommand response = this.processRequest(ctx.channel(), request, true);
 		return response;
 	}
 
@@ -295,6 +282,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 			}
 		}
 
+		final Transaction transaction = CatUtils.catTransaction(CatDataConstants.PULLMESSAGE_PROCESSOR,
+				CatDataConstants.GETMESSAGE);
 		final GetMessageResult getMessageResult = this.brokerController.getMessageStore().getMessage(
 				requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(),
 				requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), subscriptionData);
@@ -415,9 +404,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 							}
 						}
 					});
+
+					CatUtils.catSuccess(transaction);
 				} catch (Throwable e) {
 					log.error("", e);
 					getMessageResult.release();
+					CatUtils.catException(transaction, e);
+				} finally {
+					CatUtils.catComplete(transaction);
 				}
 
 				response = null;
