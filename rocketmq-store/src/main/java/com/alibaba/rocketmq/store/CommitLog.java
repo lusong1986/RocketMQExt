@@ -496,7 +496,8 @@ public class CommitLog {
 		// https://yq.aliyun.com/articles/52533?spm=5176.100240.searchblog.12.W4UhIH
 		// 如何保证并发安全，在写数据前，需要抢占一个锁，因为这只是把数据写到文件系统缓存中，所以持有锁的时间非常短，对性能友好。请看代码
 
-		Transaction transaction = CatUtils.catTransaction(CatDataConstants.MAPEDFILE_APPEND_MESSAGE, msg.toString());
+		Transaction transaction = CatUtils.catTransaction(CatDataConstants.MAPEDFILE_APPEND_MESSAGE,
+				CatDataConstants.MAPEDFILE_APPEND_MESSAGE);
 		long eclipseTimeInLock = 0;
 		try {
 			synchronized (this) {
@@ -517,6 +518,7 @@ public class CommitLog {
 						+ JSON.toJSONString(result));
 				switch (result.getStatus()) {
 				case PUT_OK:
+					transaction.addData("AppendMessageResult", JSON.toJSONString(result));
 					CatUtils.catSuccess(transaction);
 					break;
 				case END_OF_FILE:
@@ -531,6 +533,8 @@ public class CommitLog {
 						return new PutMessageResult(PutMessageStatus.CREATE_MAPEDFILE_FAILED, result);
 					}
 					result = mapedFile.appendMessage(msg, this.appendMessageCallback);
+
+					transaction.addData("AppendMessageResult", JSON.toJSONString(result));
 					CatUtils.catSuccess(transaction);
 					break;
 				case MESSAGE_SIZE_EXCEEDED:
@@ -615,7 +619,7 @@ public class CommitLog {
 			if (msg.isWaitStoreMsgOK()) {
 				// Determine whether to wait
 				Transaction syncTransaction = CatUtils.catTransaction(CatDataConstants.SYNC_TO_SLAVE,
-						JSON.toJSONString(result));
+						CatDataConstants.SYNC_TO_SLAVE);
 				try {
 					if (service.isSlaveOK(result.getWroteOffset() + result.getWroteBytes())) {
 						if (null == request) {
@@ -627,9 +631,8 @@ public class CommitLog {
 
 						service.getWaitNotifyObject().wakeupAll(); // notify WriteSocketService to write to slave
 
-						boolean flushOK =
-						// TODO
-						request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig().getSyncFlushTimeout());
+						boolean flushOK = request.waitForFlush(this.defaultMessageStore.getMessageStoreConfig()
+								.getSyncFlushTimeout());
 						log.info(">>>>>>>>>>>>>>>>>>>>>CommitLog.putMessage, flushOK:" + flushOK);
 						if (!flushOK) {
 							log.error(">>>>>>>>>>>CommitLog.putMessage>>>>>>>do sync transfer other node, wait return, but failed, topic: "
@@ -641,6 +644,7 @@ public class CommitLog {
 							putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
 							CatUtils.catException(syncTransaction, new CatException("FLUSH_SLAVE_TIMEOUT"));
 						} else {
+							syncTransaction.addData("GroupCommit", JSON.toJSONString(request));
 							CatUtils.catSuccess(syncTransaction);
 						}
 					}

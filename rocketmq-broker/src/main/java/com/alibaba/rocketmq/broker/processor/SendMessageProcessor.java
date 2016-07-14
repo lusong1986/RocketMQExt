@@ -81,9 +81,11 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		switch (request.getCode()) {
 		case RequestCode.CONSUMER_SEND_MSG_BACK:
 
-			transaction = CatUtils.catTransaction(CatDataConstants.CONSUMER_SEND_MSG_BACK, JSON.toJSONString(request));
+			transaction = CatUtils.catTransaction(CatDataConstants.CONSUMER_SEND_MSG_BACK,
+					CatDataConstants.CONSUMER_SEND_MSG_BACK);
 			try {
 				response = this.consumerSendMsgBack(ctx, request);
+				transaction.addData("request", JSON.toJSONString(request));
 				CatUtils.catSuccess(transaction);
 			} catch (RemotingCommandException e) {
 				CatUtils.catException(transaction, e);
@@ -105,7 +107,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 			this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
 
 			Cat.buildContextFromMQ(MessageDecoder.string2messageProperties(requestHeader.getProperties()));
-			transaction = CatUtils.catTransaction(CatDataConstants.SEND_MESSAGE_V2, JSON.toJSONString(request));
+			transaction = CatUtils.catTransaction(CatDataConstants.SEND_MESSAGE_V2, CatDataConstants.SEND_MESSAGE_V2);
 			try {
 				response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
 
@@ -114,6 +116,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 				// 消息轨迹：记录发送成功的消息
 				this.executeSendMessageHookAfter(response, mqtraceContext);
 
+				transaction.addData("request", JSON.toJSONString(request));
 				CatUtils.catSuccess(transaction);
 			} catch (RemotingCommandException e) {
 				CatUtils.catException(transaction, e);

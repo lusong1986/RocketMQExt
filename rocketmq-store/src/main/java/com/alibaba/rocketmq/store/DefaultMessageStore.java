@@ -439,13 +439,14 @@ public class DefaultMessageStore implements MessageStore {
 			return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
 		}
 
-		Transaction transaction = CatUtils.catTransaction(CatDataConstants.COMMITLOG_PUTMESSAGE, msg.toString());
+		Transaction transaction = CatUtils.catTransaction(CatDataConstants.COMMITLOG_PUTMESSAGE, CatDataConstants.COMMITLOG_PUTMESSAGE);
 		long beginTime = this.getSystemClock().now();
 
 		PutMessageResult result = null;
 		try {
 			result = this.commitLog.putMessage(msg);
 			log.info(">>>>>>>>>>>>>>>>DefaultMessageStore.putMessage>>>>>>>>>>result:" + JSON.toJSONString(result));
+			transaction.addData("msg", msg.toString());
 			CatUtils.catSuccess(transaction);
 		} finally {
 			CatUtils.catComplete(transaction);
