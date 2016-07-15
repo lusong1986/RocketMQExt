@@ -35,8 +35,6 @@ import com.alibaba.rocketmq.broker.pagecache.ManyMessageTransfer;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.TopicFilterType;
-import com.alibaba.rocketmq.common.cat.CatDataConstants;
-import com.alibaba.rocketmq.common.cat.CatUtils;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.filter.FilterAPI;
@@ -60,7 +58,6 @@ import com.alibaba.rocketmq.store.GetMessageResult;
 import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.BrokerRole;
-import com.dianping.cat.message.Transaction;
 
 /**
  * 拉消息请求处理
@@ -282,8 +279,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 			}
 		}
 
-		final Transaction transaction = CatUtils.catTransaction(CatDataConstants.PULLMESSAGE_PROCESSOR,
-				CatDataConstants.GETMESSAGE);
 		final GetMessageResult getMessageResult = this.brokerController.getMessageStore().getMessage(
 				requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(),
 				requestHeader.getQueueOffset(), requestHeader.getMaxMsgNums(), subscriptionData);
@@ -398,20 +393,16 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 						@Override
 						public void operationComplete(ChannelFuture future) throws Exception {
 							getMessageResult.release();
+
 							if (!future.isSuccess()) {
 								log.error("transfer many message by pagecache failed, " + channel.remoteAddress(),
 										future.cause());
 							}
 						}
 					});
-
-					CatUtils.catSuccess(transaction);
 				} catch (Throwable e) {
 					log.error("", e);
 					getMessageResult.release();
-					CatUtils.catException(transaction, e);
-				} finally {
-					CatUtils.catComplete(transaction);
 				}
 
 				response = null;
