@@ -439,7 +439,8 @@ public class DefaultMessageStore implements MessageStore {
 			return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
 		}
 
-		Transaction transaction = CatUtils.catTransaction(CatDataConstants.COMMITLOG_PUTMESSAGE, CatDataConstants.COMMITLOG_PUTMESSAGE);
+		Transaction transaction = CatUtils.catTransaction(CatDataConstants.COMMITLOG_PUTMESSAGE,
+				CatDataConstants.COMMITLOG_PUTMESSAGE);
 		long beginTime = this.getSystemClock().now();
 
 		PutMessageResult result = null;
@@ -1139,6 +1140,7 @@ public class DefaultMessageStore implements MessageStore {
 	public void putMessagePostionInfo(String topic, int queueId, long offset, int size, long tagsCode,
 			long storeTimestamp, long logicOffset) {
 		ConsumeQueue cq = this.findConsumeQueue(topic, queueId);
+
 		log.info(">>>>>>>>>>>>>>>>DefaultMessageStore.putMessagePostionInfo>>>ConsumeQueue:" + JSON.toJSONString(cq));
 		cq.putMessagePostionInfoWrapper(offset, size, tagsCode, storeTimestamp, logicOffset);
 	}
@@ -1572,17 +1574,20 @@ public class DefaultMessageStore implements MessageStore {
 
 					final int tranType = MessageSysFlag.getTransactionValue(req.getSysFlag());
 
+					ConsumeQueue cq = DefaultMessageStore.this.findConsumeQueue(req.getTopic(), req.getQueueId());
+					long consumeQueueMaxPhysicOffset = 0;
+					if (cq != null) {
+						consumeQueueMaxPhysicOffset = cq.getMaxPhysicOffset();
+					}
+
 					// 1、分发消息位置信息到ConsumeQueue
 					switch (tranType) {
 					case MessageSysFlag.TransactionNotType:
 					case MessageSysFlag.TransactionCommitType:
 						// 将请求发到具体的Consume Queue
 
-						try {
-							log.info("@@@@@@@@@@@@@@@DispatchMessageService.doDispatch >>>putMessagePostionInfo>>>>DispatchRequest:"
-									+ JSON.toJSONString(req) + ",tranType:" + tranType);
-						} catch (Exception e) {
-						}
+						log.info("@@@@@@@@@@@@@@@DispatchMessageService.doDispatch >>>putMessagePostionInfo>>>>DispatchRequest:"
+								+ JSON.toJSONString(req) + ",tranType:" + tranType);
 
 						DefaultMessageStore.this.putMessagePostionInfo(req.getTopic(), req.getQueueId(),
 								req.getCommitLogOffset(), req.getMsgSize(), req.getTagsCode(), req.getStoreTimestamp(),
@@ -1598,11 +1603,19 @@ public class DefaultMessageStore implements MessageStore {
 					// req.getMsgSize());
 
 					if (DefaultMessageStore.this.msgPersistService != null) {
-						MessageExt msg = DefaultMessageStore.this.lookMessageByOffset(req.getCommitLogOffset());
-						log.info("#############################readString:" + msg);
-						if (msg != null) {
-							DefaultMessageStore.this.msgPersistService.putMessage(msg);
+
+						log.info("@@@@@@@@@@@@@@@DispatchMessageService.doDispatch >>>consumeQueueMaxPhysicOffset:"
+								+ consumeQueueMaxPhysicOffset + ",req.getCommitLogOffset():" + req.getCommitLogOffset());
+
+						if (req.getCommitLogOffset() > consumeQueueMaxPhysicOffset) {
+							// 在数据恢复时不会走到这个流程
+							MessageExt msg = DefaultMessageStore.this.lookMessageByOffset(req.getCommitLogOffset());
+							log.info("#############################readString:" + msg);
+							if (msg != null) {
+								DefaultMessageStore.this.msgPersistService.putMessage(msg);
+							}
 						}
+
 					}
 
 					// GetMessageResult result =
