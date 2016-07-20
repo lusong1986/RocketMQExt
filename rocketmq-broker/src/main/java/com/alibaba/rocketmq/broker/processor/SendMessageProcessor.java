@@ -110,11 +110,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 			transaction = CatUtils.catTransaction(CatDataConstants.SEND_MESSAGE_V2, CatDataConstants.SEND_MESSAGE_V2);
 			try {
 				response = this.sendMessage(ctx, request, mqtraceContext, requestHeader);
-
 				log.info(">>>>>>>>>>>>>>>>>>>>>>>>>SendMessageProcessor.processRequest, response:"
 						+ JSON.toJSONString(response));
-				// 消息轨迹：记录发送成功的消息
-				this.executeSendMessageHookAfter(response, mqtraceContext);
 
 				transaction.addData("request", JSON.toJSONString(request));
 				CatUtils.catSuccess(transaction);
@@ -124,6 +121,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 			} finally {
 				CatUtils.catComplete(transaction);
 			}
+
+			// 消息轨迹：记录发送成功的消息
+			this.executeSendMessageHookAfter(response, mqtraceContext);
 
 			return response;
 		}
