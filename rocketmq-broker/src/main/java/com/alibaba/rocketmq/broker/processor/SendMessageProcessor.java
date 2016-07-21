@@ -56,7 +56,11 @@ import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 import com.dianping.cat.Cat;
+import com.dianping.cat.CatConstants;
+import com.dianping.cat.Cat.Context;
+import com.dianping.cat.message.Event;
 import com.dianping.cat.message.Transaction;
+import com.dianping.cat.message.spi.MessageTree;
 
 /**
  * 处理客户端发送消息的请求
@@ -312,7 +316,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
 		return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
 	}
-
+	
 	private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
 			final RemotingCommand request,//
 			final SendMessageContext mqtraceContext,//
@@ -356,8 +360,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		msgInner.setTopic(requestHeader.getTopic());
 		msgInner.setBody(body);
 		msgInner.setFlag(requestHeader.getFlag());
-		MessageAccessor.setProperties(msgInner, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
-		msgInner.setPropertiesString(requestHeader.getProperties());
+
+		Map<String, String> string2messageProperties = MessageDecoder.string2messageProperties(requestHeader
+				.getProperties());
+		string2messageProperties.putAll(Cat.buildMQUserProperties());
+		MessageAccessor.setProperties(msgInner, string2messageProperties);
+		msgInner.setPropertiesString(MessageDecoder.messageProperties2String(string2messageProperties));
+		log.info(">>>>>>>>>>>>string2messageProperties:" + string2messageProperties);
+
 		msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(),
 				msgInner.getTags()));
 
