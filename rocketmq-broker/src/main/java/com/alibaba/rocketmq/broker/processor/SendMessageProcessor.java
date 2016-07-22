@@ -56,8 +56,8 @@ import com.alibaba.rocketmq.store.MessageExtBrokerInner;
 import com.alibaba.rocketmq.store.PutMessageResult;
 import com.alibaba.rocketmq.store.config.StorePathConfigHelper;
 import com.dianping.cat.Cat;
-import com.dianping.cat.CatConstants;
 import com.dianping.cat.Cat.Context;
+import com.dianping.cat.CatConstants;
 import com.dianping.cat.message.Event;
 import com.dianping.cat.message.Transaction;
 import com.dianping.cat.message.spi.MessageTree;
@@ -317,6 +317,37 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
 	}
 	
+	public static Map<String, String> buildMQUserProperties() {
+		try {
+			MessageTree tree = Cat.getManager().getThreadLocalMessageTree();
+			String messageId = tree.getMessageId();
+
+			if (messageId == null) {
+				messageId = Cat.createMessageId();
+				tree.setMessageId(messageId);
+			}
+
+			String childId1 = Cat.createMessageId();
+			Cat.logEvent(CatConstants.TYPE_REMOTE_CALL, "", Event.SUCCESS, childId1);
+
+			String root = tree.getRootMessageId();
+
+			if (root == null) {
+				root = messageId;
+			}
+
+			Map<String, String> map = new HashMap<String, String>();
+			map.put(Context.ROOT, root);
+			map.put(Context.PARENT+1, messageId);
+			map.put(Context.CHILD + 1, childId1);
+
+			return map;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
 	private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
 			final RemotingCommand request,//
 			final SendMessageContext mqtraceContext,//
@@ -363,7 +394,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
 		Map<String, String> string2messageProperties = MessageDecoder.string2messageProperties(requestHeader
 				.getProperties());
-		string2messageProperties.putAll(Cat.buildMQUserProperties());
+		string2messageProperties.putAll(buildMQUserProperties());
 		MessageAccessor.setProperties(msgInner, string2messageProperties);
 		msgInner.setPropertiesString(MessageDecoder.messageProperties2String(string2messageProperties));
 		log.info(">>>>>>>>>>>>string2messageProperties:" + string2messageProperties);
