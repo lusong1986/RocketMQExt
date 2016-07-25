@@ -6,6 +6,26 @@ public class MessageMongoStoreConfig {
 
 	private String mongoDbName;
 
+	private String mongoUser;
+
+	private String mongoPassword;
+
+	public String getMongoUser() {
+		return mongoUser;
+	}
+
+	public void setMongoUser(String mongoUser) {
+		this.mongoUser = mongoUser;
+	}
+
+	public String getMongoPassword() {
+		return mongoPassword;
+	}
+
+	public void setMongoPassword(String mongoPassword) {
+		this.mongoPassword = mongoPassword;
+	}
+
 	public String getMongoDbName() {
 		return mongoDbName;
 	}

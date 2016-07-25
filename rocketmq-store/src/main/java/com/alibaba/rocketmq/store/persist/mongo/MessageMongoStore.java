@@ -5,6 +5,7 @@ import java.net.SocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -19,6 +20,7 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 
 public class MessageMongoStore implements MsgStore {
@@ -68,8 +70,16 @@ public class MessageMongoStore implements MsgStore {
 				}
 			}
 
-			mgClient = new MongoClient(addresses);
+			// Caused by: java.security.NoSuchAlgorithmException: PBKDF2WithHmacSHA1 SecretKeyFactory not available,need
+			// jre/lib/ext
+			List<MongoCredential> credentialsList = new LinkedList<MongoCredential>();
+			MongoCredential credential = MongoCredential.createCredential(messageMongoStoreConfig.getMongoUser(),
+					messageMongoStoreConfig.getMongoDbName(), messageMongoStoreConfig.getMongoPassword().toCharArray());
+			credentialsList.add(credential);
+			mgClient = new MongoClient(addresses, credentialsList);
 			mqDb = mgClient.getDB(messageMongoStoreConfig.getMongoDbName());
+
+			log.info(">>>>>>>>>open mongodb successfully.");
 			return true;
 		} catch (Throwable e) {
 			log.error("open mongo Exeption " + e.getMessage(), e);
@@ -146,7 +156,7 @@ public class MessageMongoStore implements MsgStore {
 			}
 
 			return true;
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.warn("mongo store messageExt Exception", e);
 		}
 

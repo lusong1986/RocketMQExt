@@ -58,6 +58,8 @@ public class MsgPersistService extends ServiceThread {
 				MessageMongoStoreConfig messageMongoStoreConfig = new MessageMongoStoreConfig();
 				messageMongoStoreConfig.setMongoDbName(messageStoreConfig.getMongoDbName());
 				messageMongoStoreConfig.setMongoRepSetHosts(messageStoreConfig.getMongoRepSetHosts());
+				messageMongoStoreConfig.setMongoUser(messageStoreConfig.getMongoUser());
+				messageMongoStoreConfig.setMongoPassword(messageStoreConfig.getMongoPassword());
 
 				this.msgStore = new MessageMongoStore(messageMongoStoreConfig);
 			} else if (MYSQL.equals(messageStoreConfig.getMsgStoreType())) {
