@@ -144,10 +144,10 @@ public class MQVersion {
         V3_2_5,
 
         V3_2_6_SNAPSHOT,
-        V3_2_6,
+        V3_2_6,   //79
 
-        V3_2_7_SNAPSHOT,
-        V3_2_7,
+        V3_2_7_SNAPSHOT,  //80
+        V3_2_7,  //81
 
         V3_2_8_SNAPSHOT,
         V3_2_8,
