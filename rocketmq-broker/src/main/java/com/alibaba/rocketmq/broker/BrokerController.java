@@ -311,7 +311,7 @@ public class BrokerController {
 						}
 					}
 
-				}, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
+				}, 1000 * 10, 1000 * 30, TimeUnit.MILLISECONDS);
 
 				this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 					@Override
@@ -338,8 +338,8 @@ public class BrokerController {
 				TransactionPrepareMsgRecoder.getPrepareMsgmap());
 
 		try {
-			// wait three seconds for removeing commited transaction，等待处理完当前预发的消息
-			Thread.sleep(3000);
+			// wait 10 seconds for removeing commited transaction，等待处理完当前预发的消息
+			Thread.sleep(10000);
 		} catch (InterruptedException e1) {
 		}
 
@@ -347,7 +347,8 @@ public class BrokerController {
 			for (final PrepareMsgInfo uncheckMsgInfo : copyPrepareMsgMap.values()) {
 				if (!TransactionPrepareMsgRecoder.getPrepareMsgmap().containsKey(uncheckMsgInfo.getCommitLogOffset())) {
 					// 已经在预发消息map里面清除了，不需要处理了
-					log.warn(">>>>>>>>>>no need to deal with because have dealed by endtransaction...>>>>>>>" +uncheckMsgInfo.getCommitLogOffset());
+					log.warn(">>>>>>>>>>no need to deal with because have dealed by endtransaction...>>>>>>>"
+							+ uncheckMsgInfo.getCommitLogOffset());
 					continue;
 				}
 
@@ -382,8 +383,8 @@ public class BrokerController {
 								checkTransactionStateRequestHeader.setTranStateTableOffset(uncheckMsgInfo
 										.getTranStateTableOffset());
 
-								 log.info(">>>>>>>>>>>START TO CALL broker2Client.checkProducerTransactionState :"
-								 + uncheckMsgInfo + ", producerChannel:" + producerChannel);
+								log.info(">>>>>>>>>>>START TO CALL broker2Client.checkProducerTransactionState :"
+										+ uncheckMsgInfo + ", producerChannel:" + producerChannel);
 								BrokerController.this.broker2Client.checkProducerTransactionState(producerChannel,
 										checkTransactionStateRequestHeader, selectMapedBufferResult);
 							}
