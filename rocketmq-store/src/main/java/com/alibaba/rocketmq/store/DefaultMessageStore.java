@@ -618,6 +618,7 @@ public class DefaultMessageStore implements MessageStore {
 
 		if (GetMessageStatus.FOUND == status) {
 			this.storeStatsService.getGetMessageTimesTotalFound().incrementAndGet();
+			this.storeStatsService.getSingleGetMessageConsumerGroupTotal(group, topic).incrementAndGet();
 		} else {
 			this.storeStatsService.getGetMessageTimesTotalMiss().incrementAndGet();
 		}

@@ -21,13 +21,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSONObject;
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
@@ -495,7 +499,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
 		Set<String> produceGroups = this.brokerController.getProducerManager().getGroupChannelTable().keySet();
-		log.info(">>>>>>>>>>>>>>produceGroups:" +produceGroups);
+		log.info(">>>>>>>>>>>>>>produceGroups:" + produceGroups);
 		if (produceGroups != null && produceGroups.size() > 0) {
 			String data = StringUtils.join(produceGroups.toArray(), ",");
 			try {
@@ -918,6 +922,35 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 		return response;
 	}
 
+	private String mapToString(Map<String, ConcurrentHashMap<String, AtomicLong>> map) {
+		if (null == map || map.isEmpty()) {
+			return "";
+		}
+
+		JSONObject jsonObject = new JSONObject();
+		for (Entry<String, ConcurrentHashMap<String, AtomicLong>> entry : map.entrySet()) {
+			JSONObject json = mapToJson(entry.getValue());
+			if (json != null) {
+				jsonObject.put(entry.getKey(), json);
+			}
+		}
+
+		return jsonObject.toJSONString();
+	}
+
+	private JSONObject mapToJson(Map<String, AtomicLong> map) {
+		if (null == map || map.isEmpty()) {
+			return null;
+		}
+
+		JSONObject jsonObject = new JSONObject();
+		for (Entry<String, AtomicLong> entry : map.entrySet()) {
+			jsonObject.put(entry.getKey(), entry.getValue());
+		}
+
+		return jsonObject;
+	}
+
 	private HashMap<String, String> prepareRuntimeInfo() {
 		HashMap<String, String> runtimeInfo = this.brokerController.getMessageStore().getRuntimeInfo();
 		runtimeInfo.put("brokerVersionDesc", MQVersion.getVersionDesc(MQVersion.CurrentVersion));
@@ -936,6 +969,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 				String.valueOf(this.brokerController.getBrokerStats().getMsgGetTotalTodayMorning()));
 		runtimeInfo.put("msgGetTotalTodayNow",
 				String.valueOf(this.brokerController.getBrokerStats().getMsgGetTotalTodayNow()));
+
+		runtimeInfo.put("msgGetConsumerGroupTimesTodayMorning", mapToString(this.brokerController.getBrokerStats()
+				.getMsgGetConsumerGroupTimesTodayMorning()));
+
+		runtimeInfo.put("msgGetConsumerGroupTimesTodayNow", mapToString(this.brokerController.getBrokerStats()
+				.getMsgGetConsumerGroupTimesTodayNow()));
 
 		runtimeInfo.put("sendThreadPoolQueueSize",
 				String.valueOf(this.brokerController.getSendThreadPoolQueue().size()));

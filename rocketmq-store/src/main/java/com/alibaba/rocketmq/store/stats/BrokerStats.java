@@ -1,26 +1,26 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.alibaba.rocketmq.store.stats;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.store.DefaultMessageStore;
-
 
 /**
  * Broker上的一些统计数据
@@ -29,89 +29,93 @@ import com.alibaba.rocketmq.store.DefaultMessageStore;
  * @since 2013-10-23
  */
 public class BrokerStats {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
+	private static final Logger log = LoggerFactory.getLogger(LoggerName.BrokerLoggerName);
 
-    // 昨天凌晨00:00:00记录的put消息总数
-    private volatile long msgPutTotalYesterdayMorning;
-    // 今天凌晨00:00:00记录的put消息总数
-    private volatile long msgPutTotalTodayMorning;
+	// 昨天凌晨00:00:00记录的put消息总数
+	private volatile long msgPutTotalYesterdayMorning;
+	// 今天凌晨00:00:00记录的put消息总数
+	private volatile long msgPutTotalTodayMorning;
 
-    // 昨天凌晨00:00:00记录的get消息总数
-    private volatile long msgGetTotalYesterdayMorning;
-    // 今天凌晨00:00:00记录的get消息总数
-    private volatile long msgGetTotalTodayMorning;
+	// 昨天凌晨00:00:00记录的get消息总数
+	private volatile long msgGetTotalYesterdayMorning;
+	// 今天凌晨00:00:00记录的get消息总数
+	private volatile long msgGetTotalTodayMorning;
 
-    private final DefaultMessageStore defaultMessageStore;
+	// 今天凌晨00:00:00记录的get消息总数(昨天一天的数据,consumergroup,topic)
+	private volatile Map<String, ConcurrentHashMap<String, AtomicLong>> msgGetConsumerGroupTimesTodayMorning = new ConcurrentHashMap<String, ConcurrentHashMap<String, AtomicLong>>(
+			128);
 
+	private final DefaultMessageStore defaultMessageStore;
 
-    public BrokerStats(DefaultMessageStore defaultMessageStore) {
-        this.defaultMessageStore = defaultMessageStore;
-    }
+	public BrokerStats(DefaultMessageStore defaultMessageStore) {
+		this.defaultMessageStore = defaultMessageStore;
+	}
 
+	/**
+	 * 每天00:00:00调用
+	 */
+	public void record() {
+		this.msgPutTotalYesterdayMorning = this.msgPutTotalTodayMorning;
+		this.msgGetTotalYesterdayMorning = this.msgGetTotalTodayMorning;
+		this.msgGetConsumerGroupTimesTodayMorning = this.defaultMessageStore.getStoreStatsService()
+				.getGetMessageConsumerGroupTimesTotal();
 
-    /**
-     * 每天00:00:00调用
-     */
-    public void record() {
-        this.msgPutTotalYesterdayMorning = this.msgPutTotalTodayMorning;
-        this.msgGetTotalYesterdayMorning = this.msgGetTotalTodayMorning;
+		this.msgPutTotalTodayMorning = this.defaultMessageStore.getStoreStatsService().getPutMessageTimesTotal();
+		this.msgGetTotalTodayMorning = this.defaultMessageStore.getStoreStatsService()
+				.getGetMessageTransferedMsgCount().get();
 
-        this.msgPutTotalTodayMorning =
-                this.defaultMessageStore.getStoreStatsService().getPutMessageTimesTotal();
-        this.msgGetTotalTodayMorning =
-                this.defaultMessageStore.getStoreStatsService().getGetMessageTransferedMsgCount().get();
+		// 0点时清除消费统计数据
+		this.defaultMessageStore.getStoreStatsService().getGetMessageConsumerGroupTimesTotal().clear();
 
-        log.info("yesterday put message total: {}", msgPutTotalTodayMorning - msgPutTotalYesterdayMorning);
-        log.info("yesterday get message total: {}", msgGetTotalTodayMorning - msgGetTotalYesterdayMorning);
-    }
+		log.info("yesterday put message total: {}", msgPutTotalTodayMorning - msgPutTotalYesterdayMorning);
+		log.info("yesterday get message total: {}", msgGetTotalTodayMorning - msgGetTotalYesterdayMorning);
+	}
 
+	public long getMsgPutTotalYesterdayMorning() {
+		return msgPutTotalYesterdayMorning;
+	}
 
-    public long getMsgPutTotalYesterdayMorning() {
-        return msgPutTotalYesterdayMorning;
-    }
+	public void setMsgPutTotalYesterdayMorning(long msgPutTotalYesterdayMorning) {
+		this.msgPutTotalYesterdayMorning = msgPutTotalYesterdayMorning;
+	}
 
+	public long getMsgPutTotalTodayMorning() {
+		return msgPutTotalTodayMorning;
+	}
 
-    public void setMsgPutTotalYesterdayMorning(long msgPutTotalYesterdayMorning) {
-        this.msgPutTotalYesterdayMorning = msgPutTotalYesterdayMorning;
-    }
+	public void setMsgPutTotalTodayMorning(long msgPutTotalTodayMorning) {
+		this.msgPutTotalTodayMorning = msgPutTotalTodayMorning;
+	}
 
+	public long getMsgGetTotalYesterdayMorning() {
+		return msgGetTotalYesterdayMorning;
+	}
 
-    public long getMsgPutTotalTodayMorning() {
-        return msgPutTotalTodayMorning;
-    }
+	public void setMsgGetTotalYesterdayMorning(long msgGetTotalYesterdayMorning) {
+		this.msgGetTotalYesterdayMorning = msgGetTotalYesterdayMorning;
+	}
 
+	public long getMsgGetTotalTodayMorning() {
+		return msgGetTotalTodayMorning;
+	}
 
-    public void setMsgPutTotalTodayMorning(long msgPutTotalTodayMorning) {
-        this.msgPutTotalTodayMorning = msgPutTotalTodayMorning;
-    }
+	public void setMsgGetTotalTodayMorning(long msgGetTotalTodayMorning) {
+		this.msgGetTotalTodayMorning = msgGetTotalTodayMorning;
+	}
 
+	public long getMsgPutTotalTodayNow() {
+		return this.defaultMessageStore.getStoreStatsService().getPutMessageTimesTotal();
+	}
 
-    public long getMsgGetTotalYesterdayMorning() {
-        return msgGetTotalYesterdayMorning;
-    }
+	public long getMsgGetTotalTodayNow() {
+		return this.defaultMessageStore.getStoreStatsService().getGetMessageTransferedMsgCount().get();
+	}
 
+	public Map<String, ConcurrentHashMap<String, AtomicLong>> getMsgGetConsumerGroupTimesTodayMorning() {
+		return msgGetConsumerGroupTimesTodayMorning;
+	}
 
-    public void setMsgGetTotalYesterdayMorning(long msgGetTotalYesterdayMorning) {
-        this.msgGetTotalYesterdayMorning = msgGetTotalYesterdayMorning;
-    }
-
-
-    public long getMsgGetTotalTodayMorning() {
-        return msgGetTotalTodayMorning;
-    }
-
-
-    public void setMsgGetTotalTodayMorning(long msgGetTotalTodayMorning) {
-        this.msgGetTotalTodayMorning = msgGetTotalTodayMorning;
-    }
-
-
-    public long getMsgPutTotalTodayNow() {
-        return this.defaultMessageStore.getStoreStatsService().getPutMessageTimesTotal();
-    }
-
-
-    public long getMsgGetTotalTodayNow() {
-        return this.defaultMessageStore.getStoreStatsService().getGetMessageTransferedMsgCount().get();
-    }
+	public Map<String, ConcurrentHashMap<String, AtomicLong>> getMsgGetConsumerGroupTimesTodayNow() {
+		return this.defaultMessageStore.getStoreStatsService().getGetMessageConsumerGroupTimesTotal();
+	}
 }
