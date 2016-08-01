@@ -57,8 +57,8 @@ public class BrokerStats {
 	public void record() {
 		this.msgPutTotalYesterdayMorning = this.msgPutTotalTodayMorning;
 		this.msgGetTotalYesterdayMorning = this.msgGetTotalTodayMorning;
-		this.msgGetConsumerGroupTimesTodayMorning = this.defaultMessageStore.getStoreStatsService()
-				.getGetMessageConsumerGroupTimesTotal();
+		this.msgGetConsumerGroupTimesTodayMorning = new ConcurrentHashMap<String, ConcurrentHashMap<String, AtomicLong>>(
+				this.defaultMessageStore.getStoreStatsService().getGetMessageConsumerGroupTimesTotal());
 
 		this.msgPutTotalTodayMorning = this.defaultMessageStore.getStoreStatsService().getPutMessageTimesTotal();
 		this.msgGetTotalTodayMorning = this.defaultMessageStore.getStoreStatsService()
