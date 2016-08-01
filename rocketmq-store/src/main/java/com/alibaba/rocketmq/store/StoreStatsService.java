@@ -48,10 +48,12 @@ public class StoreStatsService extends ServiceThread {
 	private final Map<String, AtomicLong> putMessageTopicSizeTotal = new ConcurrentHashMap<String, AtomicLong>(128);
 	// getMessage，调用总数
 	private final AtomicLong getMessageTimesTotalFound = new AtomicLong(0);
+
+	// 获取到消息总数量
 	private final AtomicLong getMessageTransferedMsgCount = new AtomicLong(0);
 	private final AtomicLong getMessageTimesTotalMiss = new AtomicLong(0);
 
-	// 根据consumerGroup统计消费次数,consumerGroup, topic
+	// 根据consumerGroup统计拉取到的消息数,consumerGroup, topic
 	private final Map<String, ConcurrentHashMap<String, AtomicLong>> getMessageConsumerGroupTimesTotal = new ConcurrentHashMap<String, ConcurrentHashMap<String, AtomicLong>>(
 			128);
 

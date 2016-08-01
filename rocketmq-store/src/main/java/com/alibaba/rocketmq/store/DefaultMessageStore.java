@@ -561,6 +561,9 @@ public class DefaultMessageStore implements MessageStore {
 								SelectMapedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy);
 								if (selectResult != null) {
 									this.storeStatsService.getGetMessageTransferedMsgCount().incrementAndGet();
+									this.storeStatsService.getSingleGetMessageConsumerGroupTotal(group, topic)
+											.incrementAndGet();
+
 									getResult.addMessage(selectResult);
 									status = GetMessageStatus.FOUND;
 									nextPhyFileStartOffset = Long.MIN_VALUE;
@@ -618,7 +621,6 @@ public class DefaultMessageStore implements MessageStore {
 
 		if (GetMessageStatus.FOUND == status) {
 			this.storeStatsService.getGetMessageTimesTotalFound().incrementAndGet();
-			this.storeStatsService.getSingleGetMessageConsumerGroupTotal(group, topic).incrementAndGet();
 		} else {
 			this.storeStatsService.getGetMessageTimesTotalMiss().incrementAndGet();
 		}
