@@ -1,5 +1,6 @@
 rocketmq-broker/.classpath
 rocketmq-broker/.project
+rocketmq-broker/.pmd
 rocketmq-broker/.settings/org.eclipse.jdt.core.prefs
 rocketmq-broker/target/classes/.gitignore
 rocketmq-broker/target/test-classes/.gitignore
@@ -46,6 +47,7 @@ rocketmq-tools/.settings/org.eclipse.jdt.core.prefs
 rocketmq-tools/target/.gitignore
 target/mvn-eclipse-cache.properties
 *.class
+*.pmd
 target/
 *.iml
 .idea/
