@@ -34,6 +34,11 @@ public class MongoMessage implements Serializable {
 	private long preparedTransactionOffset;
 
 	/**
+	 * 只对预发消息时有意义，0标识未处理，1是这个预发消息被提交，2是标识这个预发消息被回滚
+	 */
+	private int tranStatus;
+
+	/**
 	 * 消息主题
 	 */
 	private String topic;
@@ -54,6 +59,14 @@ public class MongoMessage implements Serializable {
 	 * 消息体
 	 */
 	private String content;
+
+	public int getTranStatus() {
+		return tranStatus;
+	}
+
+	public void setTranStatus(int tranStatus) {
+		this.tranStatus = tranStatus;
+	}
 
 	public int getQueueId() {
 		return queueId;
