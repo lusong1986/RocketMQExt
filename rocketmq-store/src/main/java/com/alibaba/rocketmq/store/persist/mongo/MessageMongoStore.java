@@ -15,7 +15,9 @@ import org.slf4j.LoggerFactory;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.message.MessageExt;
+import com.alibaba.rocketmq.common.sysflag.MessageSysFlag;
 import com.alibaba.rocketmq.store.persist.MsgStore;
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
@@ -150,6 +152,29 @@ public class MessageMongoStore implements MsgStore {
 					mqMessageCollection.insert(dbObject);
 
 					this.totalRecordsValue.addAndGet(1);
+
+					if (messageExt.getPreparedTransactionOffset() > 0) {
+						final int tranType = MessageSysFlag.getTransactionValue(messageExt.getSysFlag());
+						int tranStatus = 0;
+						if (tranType == MessageSysFlag.TransactionCommitType) {
+							tranStatus = 1;// commit
+						} else if (tranType == MessageSysFlag.TransactionRollbackType) {
+							tranStatus = 2;// rollback
+						}
+
+						if (tranStatus > 0) {
+							final DBObject query = new BasicDBObject();
+							query.put("commitLogOffset", messageExt.getPreparedTransactionOffset());
+							DBObject retObject = mqMessageCollection.findOne(query);
+							if (retObject != null) {
+								retObject.put("tranStatus", tranStatus);
+								mqMessageCollection.update(query, retObject);
+								log.info(">>>>>>>>>>>>>>update prepare message: " + retObject);
+							}
+						}
+
+					}
+
 				} catch (Exception e) {
 					log.warn("insert mongo error:" + e.getMessage(), e);
 				}

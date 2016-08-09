@@ -111,7 +111,7 @@ public class MsgPersistService extends ServiceThread {
 
 					this.persist(msg);
 				}
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				log.warn(this.getServiceName() + " service has exception. ", e);
 			}
 		}
