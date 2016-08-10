@@ -38,6 +38,14 @@ public class MongoMessage implements Serializable {
 	 */
 	private int tranStatus;
 
+	private String _catRootMessageId;
+
+	private String _catChildMessageId1;
+
+	private String _catParentMessageId1;
+
+	private String _catParentMessageId;
+
 	/**
 	 * 消息主题
 	 */
@@ -59,6 +67,38 @@ public class MongoMessage implements Serializable {
 	 * 消息体
 	 */
 	private String content;
+
+	public String get_catRootMessageId() {
+		return _catRootMessageId;
+	}
+
+	public void set_catRootMessageId(String _catRootMessageId) {
+		this._catRootMessageId = _catRootMessageId;
+	}
+
+	public String get_catChildMessageId1() {
+		return _catChildMessageId1;
+	}
+
+	public void set_catChildMessageId1(String _catChildMessageId1) {
+		this._catChildMessageId1 = _catChildMessageId1;
+	}
+
+	public String get_catParentMessageId1() {
+		return _catParentMessageId1;
+	}
+
+	public void set_catParentMessageId1(String _catParentMessageId1) {
+		this._catParentMessageId1 = _catParentMessageId1;
+	}
+
+	public String get_catParentMessageId() {
+		return _catParentMessageId;
+	}
+
+	public void set_catParentMessageId(String _catParentMessageId) {
+		this._catParentMessageId = _catParentMessageId;
+	}
 
 	public int getTranStatus() {
 		return tranStatus;
