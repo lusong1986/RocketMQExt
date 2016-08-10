@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.slf4j.Logger;
@@ -137,25 +138,26 @@ public class MessageMongoStore implements MsgStore {
 				mongoMessage.setTags(messageExt.getTags() == null ? "" : messageExt.getTags());
 				mongoMessage.setKeys(messageExt.getKeys() == null ? "" : messageExt.getKeys());
 
-				String _catChildMessageId1 = messageExt.getProperties().get("_catChildMessageId1");
+				final Map<String, String> msgProperties = messageExt.getProperties();
+				String _catChildMessageId1 = msgProperties.get("_catChildMessageId1");
 				if (null == _catChildMessageId1) {
 					_catChildMessageId1 = "";
 				}
 				mongoMessage.set_catChildMessageId1(_catChildMessageId1);
 
-				String _catParentMessageId = messageExt.getProperties().get("_catParentMessageId");
+				String _catParentMessageId = msgProperties.get("_catParentMessageId");
 				if (null == _catParentMessageId) {
 					_catParentMessageId = "";
 				}
 				mongoMessage.set_catParentMessageId(_catParentMessageId);
 
-				String _catParentMessageId1 = messageExt.getProperties().get("_catParentMessageId1");
+				String _catParentMessageId1 = msgProperties.get("_catParentMessageId1");
 				if (null == _catParentMessageId1) {
 					_catParentMessageId1 = "";
 				}
 				mongoMessage.set_catParentMessageId1(_catParentMessageId1);
 
-				String _catRootMessageId = messageExt.getProperties().get("_catRootMessageId");
+				String _catRootMessageId = msgProperties.get("_catRootMessageId");
 				if (null == _catRootMessageId) {
 					_catRootMessageId = "";
 				}
@@ -169,7 +171,7 @@ public class MessageMongoStore implements MsgStore {
 				}
 				mongoMessage.setContent(bodyContentStr);
 
-				mongoMessage.setPropertiesString(JSON.toJSONString(messageExt.getProperties()));
+				mongoMessage.setPropertiesString(JSON.toJSONString(msgProperties));
 
 				try {
 					DBObject dbObject = BasicDBObjectUtils.castModel2DBObject(mongoMessage);
