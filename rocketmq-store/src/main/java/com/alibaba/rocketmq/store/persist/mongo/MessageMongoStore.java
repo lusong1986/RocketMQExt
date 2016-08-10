@@ -117,6 +117,7 @@ public class MessageMongoStore implements MsgStore {
 			for (MessageExt messageExt : msgs) {
 				DBCollection mqMessageCollection = mqDb.getCollection("messages_"
 						+ myFmt.format(new Date(messageExt.getStoreTimestamp())));
+				log.info(">>>>>>>>>>>>>mqMessageCollection:" + mqMessageCollection);
 
 				MongoMessage mongoMessage = new MongoMessage();
 				mongoMessage.setQueueId(messageExt.getQueueId());
@@ -192,6 +193,7 @@ public class MessageMongoStore implements MsgStore {
 							final DBObject query = new BasicDBObject();
 							query.put("commitLogOffset", messageExt.getPreparedTransactionOffset());
 							DBObject retObject = mqMessageCollection.findOne(query);
+							log.info(">>>>>>>>>>>>>>found prepare message: " + retObject);
 							if (retObject != null) {
 								retObject.put("tranStatus", tranStatus);
 								mqMessageCollection.update(query, retObject);
@@ -200,7 +202,6 @@ public class MessageMongoStore implements MsgStore {
 						}
 
 					}
-
 				} catch (Exception e) {
 					log.warn("insert mongo error:" + e.getMessage(), e);
 				}
