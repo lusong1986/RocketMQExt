@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -194,6 +195,14 @@ public class MessageMongoStore implements MsgStore {
 							query.put("commitLogOffset", messageExt.getPreparedTransactionOffset());
 							DBObject retObject = mqMessageCollection.findOne(query);
 							log.info(">>>>>>>>>>>>>>found prepare message: " + retObject);
+							if (null == retObject) {
+								final String lastDay = myFmt.format(DateUtils.addDays(
+										new Date(messageExt.getStoreTimestamp()), -1));
+								mqMessageCollection = mqDb.getCollection("messages_" + lastDay);
+								retObject = mqMessageCollection.findOne(query);
+								log.info(">>>>>>>>>>>>>>found prepare message again: " + retObject);
+							}
+
 							if (retObject != null) {
 								retObject.put("tranStatus", tranStatus);
 								mqMessageCollection.update(query, retObject);
