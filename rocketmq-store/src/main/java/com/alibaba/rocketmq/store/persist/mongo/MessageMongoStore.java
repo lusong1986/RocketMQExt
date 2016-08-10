@@ -120,60 +120,7 @@ public class MessageMongoStore implements MsgStore {
 						+ myFmt.format(new Date(messageExt.getStoreTimestamp())));
 				log.info(">>>>>>>>>>>>>mqMessageCollection:" + mqMessageCollection);
 
-				MongoMessage mongoMessage = new MongoMessage();
-				mongoMessage.setQueueId(messageExt.getQueueId());
-				mongoMessage.setStoreSize(messageExt.getStoreSize());
-				mongoMessage.setQueueOffset(messageExt.getQueueOffset());
-				mongoMessage.setSysFlag(messageExt.getSysFlag());
-				mongoMessage.setStoreTime(myFmt2.format(new Date(messageExt.getStoreTimestamp())));
-				mongoMessage.setBornTime(myFmt2.format(new Date(messageExt.getBornTimestamp())));
-				mongoMessage.setBornHost(getHostString(messageExt.getBornHost()));
-				mongoMessage.setStoreHost(getHostString(messageExt.getStoreHost()));
-
-				mongoMessage.setMsgId(messageExt.getMsgId());
-				mongoMessage.setCommitLogOffset(messageExt.getCommitLogOffset());
-				mongoMessage.setBodyCRC(messageExt.getBodyCRC());
-				mongoMessage.setReconsumeTimes(messageExt.getReconsumeTimes());
-				mongoMessage.setPreparedTransactionOffset(messageExt.getPreparedTransactionOffset());
-				mongoMessage.setTopic(messageExt.getTopic());
-				mongoMessage.setFlag(messageExt.getFlag());
-				mongoMessage.setTags(messageExt.getTags() == null ? "" : messageExt.getTags());
-				mongoMessage.setKeys(messageExt.getKeys() == null ? "" : messageExt.getKeys());
-
-				final Map<String, String> msgProperties = messageExt.getProperties();
-				String _catChildMessageId1 = msgProperties.get("_catChildMessageId1");
-				if (null == _catChildMessageId1) {
-					_catChildMessageId1 = "";
-				}
-				mongoMessage.set_catChildMessageId1(_catChildMessageId1);
-
-				String _catParentMessageId = msgProperties.get("_catParentMessageId");
-				if (null == _catParentMessageId) {
-					_catParentMessageId = "";
-				}
-				mongoMessage.set_catParentMessageId(_catParentMessageId);
-
-				String _catParentMessageId1 = msgProperties.get("_catParentMessageId1");
-				if (null == _catParentMessageId1) {
-					_catParentMessageId1 = "";
-				}
-				mongoMessage.set_catParentMessageId1(_catParentMessageId1);
-
-				String _catRootMessageId = msgProperties.get("_catRootMessageId");
-				if (null == _catRootMessageId) {
-					_catRootMessageId = "";
-				}
-				mongoMessage.set_catRootMessageId(_catRootMessageId);
-
-				String bodyContentStr = "";
-				try {
-					bodyContentStr = new String(messageExt.getBody(), "utf-8");
-				} catch (Throwable e) {
-					log.warn("failed to convert text-based Message content:{}" + e.getMessage(), messageExt.getMsgId());
-				}
-				mongoMessage.setContent(bodyContentStr);
-
-				mongoMessage.setPropertiesString(JSON.toJSONString(msgProperties));
+				MongoMessage mongoMessage = generateMongoMessage(messageExt);
 
 				try {
 					DBObject dbObject = BasicDBObjectUtils.castModel2DBObject(mongoMessage);
@@ -199,8 +146,10 @@ public class MessageMongoStore implements MsgStore {
 								final String lastDay = myFmt.format(DateUtils.addDays(
 										new Date(messageExt.getStoreTimestamp()), -1));
 								mqMessageCollection = mqDb.getCollection("messages_" + lastDay);
-								retObject = mqMessageCollection.findOne(query);
-								log.info(">>>>>>>>>>>>>>found prepare message again: " + retObject);
+								if (mqMessageCollection != null) {
+									retObject = mqMessageCollection.findOne(query);
+									log.info(">>>>>>>>>>>>>>found prepare message again: " + retObject);
+								}
 							}
 
 							if (retObject != null) {
@@ -222,6 +171,64 @@ public class MessageMongoStore implements MsgStore {
 		}
 
 		return false;
+	}
+
+	private MongoMessage generateMongoMessage(MessageExt messageExt) {
+		MongoMessage mongoMessage = new MongoMessage();
+		mongoMessage.setQueueId(messageExt.getQueueId());
+		mongoMessage.setStoreSize(messageExt.getStoreSize());
+		mongoMessage.setQueueOffset(messageExt.getQueueOffset());
+		mongoMessage.setSysFlag(messageExt.getSysFlag());
+		mongoMessage.setStoreTime(myFmt2.format(new Date(messageExt.getStoreTimestamp())));
+		mongoMessage.setBornTime(myFmt2.format(new Date(messageExt.getBornTimestamp())));
+		mongoMessage.setBornHost(getHostString(messageExt.getBornHost()));
+		mongoMessage.setStoreHost(getHostString(messageExt.getStoreHost()));
+
+		mongoMessage.setMsgId(messageExt.getMsgId());
+		mongoMessage.setCommitLogOffset(messageExt.getCommitLogOffset());
+		mongoMessage.setBodyCRC(messageExt.getBodyCRC());
+		mongoMessage.setReconsumeTimes(messageExt.getReconsumeTimes());
+		mongoMessage.setPreparedTransactionOffset(messageExt.getPreparedTransactionOffset());
+		mongoMessage.setTopic(messageExt.getTopic());
+		mongoMessage.setFlag(messageExt.getFlag());
+		mongoMessage.setTags(messageExt.getTags() == null ? "" : messageExt.getTags());
+		mongoMessage.setKeys(messageExt.getKeys() == null ? "" : messageExt.getKeys());
+
+		final Map<String, String> msgProperties = messageExt.getProperties();
+		String _catChildMessageId1 = msgProperties.get("_catChildMessageId1");
+		if (null == _catChildMessageId1) {
+			_catChildMessageId1 = "";
+		}
+		mongoMessage.set_catChildMessageId1(_catChildMessageId1);
+
+		String _catParentMessageId = msgProperties.get("_catParentMessageId");
+		if (null == _catParentMessageId) {
+			_catParentMessageId = "";
+		}
+		mongoMessage.set_catParentMessageId(_catParentMessageId);
+
+		String _catParentMessageId1 = msgProperties.get("_catParentMessageId1");
+		if (null == _catParentMessageId1) {
+			_catParentMessageId1 = "";
+		}
+		mongoMessage.set_catParentMessageId1(_catParentMessageId1);
+
+		String _catRootMessageId = msgProperties.get("_catRootMessageId");
+		if (null == _catRootMessageId) {
+			_catRootMessageId = "";
+		}
+		mongoMessage.set_catRootMessageId(_catRootMessageId);
+
+		String bodyContentStr = "";
+		try {
+			bodyContentStr = new String(messageExt.getBody(), "utf-8");
+		} catch (Throwable e) {
+			log.warn("failed to convert text-based Message content:{}" + e.getMessage(), messageExt.getMsgId());
+		}
+		mongoMessage.setContent(bodyContentStr);
+
+		mongoMessage.setPropertiesString(JSON.toJSONString(msgProperties));
+		return mongoMessage;
 	}
 
 	private String getHostString(SocketAddress host) {
