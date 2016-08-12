@@ -260,6 +260,15 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
 		msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(null, msgExt.getTags()));
 
+		// 消费失败的消息的parent指向上一次消费消息的child，child新生成一个messageid
+//		final Map<String, String> tracePropertis = buildMQTraceProperties(msgExt.getProperties());
+//		for (Entry<String, String> traceEntry : tracePropertis.entrySet()) {
+//			msgInner.putUserProperty(traceEntry.getKey(), traceEntry.getValue());
+//		}
+
+		// msgInner.putUserProperty(Context.CHILD + 1, Cat.createMessageId());
+		// msgInner.putUserProperty(Context.PARENT + 1, msgExt.getProperties().get(Context.CHILD + 1));
+
 		msgInner.setQueueId(queueIdInt);
 		msgInner.setSysFlag(msgExt.getSysFlag());
 		msgInner.setBornTimestamp(msgExt.getBornTimestamp());
@@ -271,6 +280,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
 		MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
 
+		log.info(">>>>>>>>>>>>>==========consume failed msg, store a delay msgInner:" + msgInner);
 		PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
 		if (putMessageResult != null) {
 			switch (putMessageResult.getPutMessageStatus()) {
@@ -302,6 +312,39 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		return response;
 	}
 
+//	public static Map<String, String> buildMQTraceProperties(Map<String, String> properties) {
+//		try {
+//			MessageTree tree = Cat.getManager().getThreadLocalMessageTree();
+//			tree.setMessageId(properties.get(Context.CHILD + 1));
+//			tree.setParentMessageId(properties.get(Context.PARENT + 1));
+//			tree.setRootMessageId(properties.get(Context.ROOT));
+//
+//			String messageId = tree.getMessageId();
+//			if (messageId == null) {
+//				messageId = Cat.createMessageId();
+//				tree.setMessageId(messageId);
+//			}
+//
+//			String childId1 = Cat.createMessageId();
+//			Cat.logEvent(CatConstants.TYPE_REMOTE_CALL, "", Event.SUCCESS, childId1);
+//
+//			String root = tree.getRootMessageId();
+//			if (root == null) {
+//				root = messageId;
+//			}
+//
+//			Map<String, String> map = new HashMap<String, String>();
+//			map.put(Context.ROOT, root);
+//			map.put(Context.PARENT + 1, messageId);
+//			map.put(Context.CHILD + 1, childId1);
+//
+//			return map;
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		return null;
+//	}
+
 	private String diskUtil() {
 		String storePathPhysic = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
 		double physicRatio = UtilAll.getDiskPartitionSpaceUsedPercent(storePathPhysic);
@@ -316,7 +359,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
 		return String.format("CL: %5.2f CQ: %5.2f INDEX: %5.2f", physicRatio, logisRatio, indexRatio);
 	}
-	
+
 	public static Map<String, String> buildMQUserProperties() {
 		try {
 			MessageTree tree = Cat.getManager().getThreadLocalMessageTree();
@@ -338,7 +381,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
 			Map<String, String> map = new HashMap<String, String>();
 			map.put(Context.ROOT, root);
-			map.put(Context.PARENT+1, messageId);
+			map.put(Context.PARENT + 1, messageId);
 			map.put(Context.CHILD + 1, childId1);
 
 			return map;
@@ -347,7 +390,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		}
 		return null;
 	}
-	
+
 	private RemotingCommand sendMessage(final ChannelHandlerContext ctx, //
 			final RemotingCommand request,//
 			final SendMessageContext mqtraceContext,//
