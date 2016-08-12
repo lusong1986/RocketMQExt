@@ -481,6 +481,8 @@ public class CommitLog {
 
 				topic = ScheduleMessageService.SCHEDULE_TOPIC;
 				queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
+				
+				//延迟队列中tagsCode存储的是延迟消息发送的时间戳
 				tagsCode = this.defaultMessageStore.getScheduleMessageService().computeDeliverTimestamp(
 						msg.getDelayTimeLevel(), msg.getStoreTimestamp());
 
