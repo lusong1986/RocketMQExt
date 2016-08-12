@@ -40,6 +40,7 @@ import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.FlushDiskType;
 import com.alibaba.rocketmq.store.ha.HAService;
 import com.alibaba.rocketmq.store.schedule.ScheduleMessageService;
+import com.dianping.cat.Cat;
 import com.dianping.cat.message.Transaction;
 
 /**
@@ -481,8 +482,8 @@ public class CommitLog {
 
 				topic = ScheduleMessageService.SCHEDULE_TOPIC;
 				queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
-				
-				//延迟队列中tagsCode存储的是延迟消息发送的时间戳
+
+				// 延迟队列中tagsCode存储的是延迟消息发送的时间戳
 				tagsCode = this.defaultMessageStore.getScheduleMessageService().computeDeliverTimestamp(
 						msg.getDelayTimeLevel(), msg.getStoreTimestamp());
 
@@ -650,6 +651,10 @@ public class CommitLog {
 							syncTransaction.addData("GroupCommit", JSON.toJSONString(request));
 							CatUtils.catSuccess(syncTransaction);
 						}
+
+						// 统计发送消息的QPM，每个topic来统计
+						Cat.logMetricForCount(topic);
+
 					}
 					// Slave problem
 					else {
