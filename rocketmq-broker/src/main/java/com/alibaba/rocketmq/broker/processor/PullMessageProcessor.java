@@ -410,7 +410,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
 				Transaction catTransaction = CatUtils.catTransaction("PullMessageProcessor", "PullMessageProcessor");
 				// 统计拉取到消息的QPM
-				Cat.logMetricForCount("PullMessageCount", getMessageResult.getMessageCount());
+				Cat.logMetricForCount(requestHeader.getConsumerGroup(), getMessageResult.getMessageCount());
 				CatUtils.catSuccess(catTransaction);
 				CatUtils.catComplete(catTransaction);
 
