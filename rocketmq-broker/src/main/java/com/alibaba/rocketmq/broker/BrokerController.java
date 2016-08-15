@@ -65,6 +65,7 @@ import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.ThreadFactoryImpl;
 import com.alibaba.rocketmq.common.TopicConfig;
 import com.alibaba.rocketmq.common.UtilAll;
+import com.alibaba.rocketmq.common.cat.CatUtils;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.namesrv.RegisterBrokerResult;
@@ -84,6 +85,8 @@ import com.alibaba.rocketmq.store.config.BrokerRole;
 import com.alibaba.rocketmq.store.config.MessageStoreConfig;
 import com.alibaba.rocketmq.store.stats.BrokerStats;
 import com.alibaba.rocketmq.store.stats.BrokerStatsManager;
+import com.dianping.cat.Cat;
+import com.dianping.cat.message.Transaction;
 
 /**
  * @author shijia.wxr<vintage.wang@gmail.com>
@@ -344,6 +347,13 @@ public class BrokerController {
 		}
 
 		if (copyPrepareMsgMap.size() > 0) {
+
+			Transaction catTransaction = CatUtils.catTransaction("TransactionPrepareCheck", "TransactionPrepareCheck");
+			// 统计事务回查消息的QPM
+			Cat.logMetricForCount("TransactionPrepareMsgs", copyPrepareMsgMap.size());
+			CatUtils.catSuccess(catTransaction);
+			CatUtils.catComplete(catTransaction);
+
 			for (final PrepareMsgInfo uncheckMsgInfo : copyPrepareMsgMap.values()) {
 				if (!TransactionPrepareMsgRecoder.getPrepareMsgmap().containsKey(uncheckMsgInfo.getCommitLogOffset())) {
 					// 已经在预发消息map里面清除了，不需要处理了
