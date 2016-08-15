@@ -648,12 +648,13 @@ public class CommitLog {
 							putMessageResult.setPutMessageStatus(PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
 							CatUtils.catException(syncTransaction, new CatException("FLUSH_SLAVE_TIMEOUT"));
 						} else {
+
+							// 统计发送消息的QPM，每个topic来统计
+							Cat.logMetricForCount(topic);
+
 							syncTransaction.addData("GroupCommit", JSON.toJSONString(request));
 							CatUtils.catSuccess(syncTransaction);
 						}
-
-						// 统计发送消息的QPM，每个topic来统计
-						Cat.logMetricForCount(topic);
 
 					}
 					// Slave problem
