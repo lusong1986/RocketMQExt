@@ -1579,6 +1579,7 @@ public class DefaultMessageStore implements MessageStore {
 
 					ConsumeQueue cq = DefaultMessageStore.this.findConsumeQueue(req.getTopic(), req.getQueueId());
 					long consumeQueueMaxPhysicOffset = 0;
+					log.info("@@@@@@@@@@@@@@@DispatchMessageService.doDispatch >>>cq:" + cq);
 					if (cq != null) {
 						consumeQueueMaxPhysicOffset = cq.getMaxPhysicOffset();
 					}
