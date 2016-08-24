@@ -897,32 +897,32 @@ public class MQClientAPIImpl {
 		this.remotingClient.invokeAsync(addr, request, timeoutMillis, invokeCallback);
 	}
 
-	public boolean registerClient(final String addr, final HeartbeatData heartbeat, final long timeoutMillis)
-			throws RemotingException, InterruptedException {
-		if (!UtilAll.isBlank(projectGroupPrefix)) {
-			Set<ConsumerData> consumerDatas = heartbeat.getConsumerDataSet();
-			for (ConsumerData consumerData : consumerDatas) {
-				consumerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(consumerData.getGroupName(),
-						projectGroupPrefix));
-				Set<SubscriptionData> subscriptionDatas = consumerData.getSubscriptionDataSet();
-				for (SubscriptionData subscriptionData : subscriptionDatas) {
-					subscriptionData.setTopic(VirtualEnvUtil.buildWithProjectGroup(subscriptionData.getTopic(),
-							projectGroupPrefix));
-				}
-			}
-			Set<ProducerData> producerDatas = heartbeat.getProducerDataSet();
-			for (ProducerData producerData : producerDatas) {
-				producerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(producerData.getGroupName(),
-						projectGroupPrefix));
-			}
-		}
-
-		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
-
-		request.setBody(heartbeat.encode());
-		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-		return response.getCode() == ResponseCode.SUCCESS;
-	}
+//	public boolean registerClient(final String addr, final HeartbeatData heartbeat, final long timeoutMillis)
+//			throws RemotingException, InterruptedException {
+//		if (!UtilAll.isBlank(projectGroupPrefix)) {
+//			Set<ConsumerData> consumerDatas = heartbeat.getConsumerDataSet();
+//			for (ConsumerData consumerData : consumerDatas) {
+//				consumerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(consumerData.getGroupName(),
+//						projectGroupPrefix));
+//				Set<SubscriptionData> subscriptionDatas = consumerData.getSubscriptionDataSet();
+//				for (SubscriptionData subscriptionData : subscriptionDatas) {
+//					subscriptionData.setTopic(VirtualEnvUtil.buildWithProjectGroup(subscriptionData.getTopic(),
+//							projectGroupPrefix));
+//				}
+//			}
+//			Set<ProducerData> producerDatas = heartbeat.getProducerDataSet();
+//			for (ProducerData producerData : producerDatas) {
+//				producerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(producerData.getGroupName(),
+//						projectGroupPrefix));
+//			}
+//		}
+//
+//		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+//
+//		request.setBody(heartbeat.encode());
+//		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+//		return response.getCode() == ResponseCode.SUCCESS;
+//	}
 
 	public void consumerSendMessageBack(//
 			final String addr, //

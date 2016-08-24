@@ -39,7 +39,7 @@ public class RequestCode {
     public static final int GET_EARLIEST_MSG_STORETIME = 32;
     // Broker 根据消息ID来查询消息
     public static final int VIEW_MESSAGE_BY_ID = 33;
-    // Broker Client向Client发送心跳，并注册自身
+    //  consumer/producer Client向Broker发送心跳，并注册自身
     public static final int HEART_BEAT = 34;
     // Broker Client注销
     public static final int UNREGISTER_CLIENT = 35;
