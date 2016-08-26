@@ -200,9 +200,16 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 		return defaultMQAdminExtImpl.examineProducerConnectionInfo(producerGroup, topic);
 	}
 
+	@Override
 	public Set<String> examineProducerGroups() throws RemotingException, MQClientException, InterruptedException,
 			MQBrokerException {
 		return defaultMQAdminExtImpl.examineProducerGroups();
+	}
+
+	@Override
+	public Map<String, Boolean> offlineConsumerClientIdsByGroup(final String consumerGroup, final String clientIds)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+		return defaultMQAdminExtImpl.offlineConsumerClientIdsByGroup(consumerGroup, clientIds);
 	}
 
 	@Override

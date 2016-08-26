@@ -16,9 +16,15 @@ import io.netty.channel.ChannelHandlerContext;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +35,8 @@ import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import com.alibaba.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import com.alibaba.rocketmq.common.MixAll;
+import com.alibaba.rocketmq.common.ThreadFactoryImpl;
+import com.alibaba.rocketmq.common.UtilAll;
 import com.alibaba.rocketmq.common.constant.LoggerName;
 import com.alibaba.rocketmq.common.constant.PermName;
 import com.alibaba.rocketmq.common.protocol.RequestCode;
@@ -36,6 +44,7 @@ import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.OfflineConsumerClientIdsByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
@@ -63,8 +72,29 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 	private final BrokerController brokerController;
 
+	private final ConcurrentHashMap<String/* Consumer Group */, String/* ignore consumer clientids */> ignoreConsumerClientIdsTable = new ConcurrentHashMap<String, String>(
+			16);
+
+	private final ScheduledExecutorService consumerClientIdsScheduledExecutorService = Executors
+			.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+					"ClientManageProcessorConsumerClientIdScheduledThread"));
+
 	public ClientManageProcessor(final BrokerController brokerController) {
 		this.brokerController = brokerController;
+
+		final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
+		final long period = 1000 * 60 * 60 * 24;
+		this.consumerClientIdsScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					log.info("clearing ignoreConsumerClientIdsTable......");
+					ignoreConsumerClientIdsTable.clear();
+				} catch (Exception e) {
+					log.error("schedule consumer client ids error.", e);
+				}
+			}
+		}, initialDelay, period, TimeUnit.MILLISECONDS);
 	}
 
 	@Override
@@ -78,6 +108,10 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 			return this.unregisterClient(ctx, request);
 		case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
 			return this.getConsumerListByGroup(ctx, request);
+
+		case RequestCode.OFFLINE_CONSUMER_IDS_BY_GROUP:
+			return this.offlineConsumerClientIdsByGroup(ctx, request);
+
 			// 更新Consumer Offset
 		case RequestCode.UPDATE_CONSUMER_OFFSET:
 			return this.updateConsumerOffset(ctx, request);
@@ -200,6 +234,23 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 				requestHeader.getConsumerGroup());
 		if (consumerGroupInfo != null) {
 			List<String> clientIds = consumerGroupInfo.getAllClientId();
+
+			final String filterConsumerClientIds = ignoreConsumerClientIdsTable.get(requestHeader.getConsumerGroup());
+			if (StringUtils.isNotBlank(filterConsumerClientIds)) {
+				final Iterator<String> iterator = clientIds.iterator();
+				while (iterator.hasNext()) {
+					final String clientId = iterator.next();
+					if (filterConsumerClientIds.contains(clientId)) {
+						log.info(">>>>>>>>>>>============remove clientId:" + clientId + " for consumer group:"
+								+ requestHeader.getConsumerGroup());
+						iterator.remove();
+					}
+				}
+			}
+
+			log.info(">>>>>>>>>>>============after filtering, consumer clientIds:" + clientIds + " for consumer group:"
+					+ requestHeader.getConsumerGroup());
+
 			if (!clientIds.isEmpty()) {
 				GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
 				body.setConsumerIdList(clientIds);
@@ -317,4 +368,33 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		response.setRemark(null);
 		return response;
 	}
+
+	/**
+	 * 下线
+	 * 
+	 * @param ctx
+	 * @param request
+	 * @return
+	 */
+	public RemotingCommand offlineConsumerClientIdsByGroup(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final OfflineConsumerClientIdsByGroupRequestHeader requestHeader = (OfflineConsumerClientIdsByGroupRequestHeader) request
+				.decodeCommandCustomHeader(OfflineConsumerClientIdsByGroupRequestHeader.class);
+
+		log.info("===========##########offlineConsumerClientIdsByGroup :" + requestHeader.getClientIds()
+				+ " for consumer group:" + requestHeader.getConsumerGroup());
+		String ignoreConsumerClientIds = ignoreConsumerClientIdsTable.get(requestHeader.getConsumerGroup());
+		if (null == ignoreConsumerClientIds) {
+			ignoreConsumerClientIds = requestHeader.getClientIds();
+		} else {
+			ignoreConsumerClientIds += "," + requestHeader.getClientIds();
+		}
+		ignoreConsumerClientIdsTable.put(requestHeader.getConsumerGroup(), ignoreConsumerClientIds);
+
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+		response.setCode(ResponseCode.SUCCESS);
+		response.setRemark(null);
+		return response;
+	}
+
 }

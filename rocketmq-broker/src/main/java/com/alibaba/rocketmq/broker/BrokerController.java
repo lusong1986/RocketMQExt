@@ -444,6 +444,8 @@ public class BrokerController {
 				.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientProcessor, this.clientManageExecutor);
 		this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, clientProcessor,
 				this.clientManageExecutor);
+		this.remotingServer.registerProcessor(RequestCode.OFFLINE_CONSUMER_IDS_BY_GROUP, clientProcessor,
+				this.clientManageExecutor);
 
 		/**
 		 * Offset存储更新转移到ClientProcessor处理

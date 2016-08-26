@@ -247,7 +247,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 	@Override
 	public void putKVConfig(String namespace, String key, String value) {
-		// TODO Auto-generated method stub
 
 	}
 
@@ -391,6 +390,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 		}
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
 	public void deleteTopicInNameServer(Set<String> addrs, String topic) throws RemotingException, MQBrokerException,
 			InterruptedException, MQClientException {
@@ -553,6 +553,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 		return allOffsetTable;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr)
 			throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -567,6 +568,43 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 			}
 		}
 		return Collections.EMPTY_MAP;
+	}
+
+	/**
+	 * 
+	 * 下线consumerGroup的consumer clientids
+	 * 
+	 * @param consumerGroup
+	 * @param clientIds
+	 * @return
+	 * @throws RemotingException
+	 * @throws MQClientException
+	 * @throws InterruptedException
+	 * @throws MQBrokerException
+	 */
+	@Override
+	public Map<String, Boolean> offlineConsumerClientIdsByGroup(final String consumerGroup, final String clientIds)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+		Collection<BrokerData> brokerDatas = this.examineBrokerClusterInfo().getBrokerAddrTable().values();
+		if (null == brokerDatas || brokerDatas.size() == 0) {
+			throw new MQClientException("Not found the broker data", null);
+		}
+
+		Map<String, Boolean> map = new HashMap<String, Boolean>();
+		final Iterator<BrokerData> iterator = brokerDatas.iterator();
+		while (iterator.hasNext()) {
+			BrokerData brokerData = iterator.next();
+			final String brokAddr = brokerData.selectBrokerAddr();
+			log.info(">>>>>>>>>>examineProducerGroups broker addr:" + brokAddr);
+
+			if (brokAddr != null) {
+				boolean offline = this.mqClientInstance.getMQClientAPIImpl().offlineConsumerClientIdsByGroup(brokAddr,
+						consumerGroup, clientIds, 5000);
+				map.put(brokAddr, offline);
+			}
+		}
+
+		return map;
 	}
 
 	public void createOrUpdateOrderConf(String key, String value, boolean isCluster) throws RemotingException,

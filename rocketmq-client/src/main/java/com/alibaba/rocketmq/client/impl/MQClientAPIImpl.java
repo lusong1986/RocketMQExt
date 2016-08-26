@@ -93,6 +93,7 @@ import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.OfflineConsumerClientIdsByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumeTimeSpanRequestHeader;
@@ -897,32 +898,32 @@ public class MQClientAPIImpl {
 		this.remotingClient.invokeAsync(addr, request, timeoutMillis, invokeCallback);
 	}
 
-//	public boolean registerClient(final String addr, final HeartbeatData heartbeat, final long timeoutMillis)
-//			throws RemotingException, InterruptedException {
-//		if (!UtilAll.isBlank(projectGroupPrefix)) {
-//			Set<ConsumerData> consumerDatas = heartbeat.getConsumerDataSet();
-//			for (ConsumerData consumerData : consumerDatas) {
-//				consumerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(consumerData.getGroupName(),
-//						projectGroupPrefix));
-//				Set<SubscriptionData> subscriptionDatas = consumerData.getSubscriptionDataSet();
-//				for (SubscriptionData subscriptionData : subscriptionDatas) {
-//					subscriptionData.setTopic(VirtualEnvUtil.buildWithProjectGroup(subscriptionData.getTopic(),
-//							projectGroupPrefix));
-//				}
-//			}
-//			Set<ProducerData> producerDatas = heartbeat.getProducerDataSet();
-//			for (ProducerData producerData : producerDatas) {
-//				producerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(producerData.getGroupName(),
-//						projectGroupPrefix));
-//			}
-//		}
-//
-//		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
-//
-//		request.setBody(heartbeat.encode());
-//		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-//		return response.getCode() == ResponseCode.SUCCESS;
-//	}
+	// public boolean registerClient(final String addr, final HeartbeatData heartbeat, final long timeoutMillis)
+	// throws RemotingException, InterruptedException {
+	// if (!UtilAll.isBlank(projectGroupPrefix)) {
+	// Set<ConsumerData> consumerDatas = heartbeat.getConsumerDataSet();
+	// for (ConsumerData consumerData : consumerDatas) {
+	// consumerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(consumerData.getGroupName(),
+	// projectGroupPrefix));
+	// Set<SubscriptionData> subscriptionDatas = consumerData.getSubscriptionDataSet();
+	// for (SubscriptionData subscriptionData : subscriptionDatas) {
+	// subscriptionData.setTopic(VirtualEnvUtil.buildWithProjectGroup(subscriptionData.getTopic(),
+	// projectGroupPrefix));
+	// }
+	// }
+	// Set<ProducerData> producerDatas = heartbeat.getProducerDataSet();
+	// for (ProducerData producerData : producerDatas) {
+	// producerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(producerData.getGroupName(),
+	// projectGroupPrefix));
+	// }
+	// }
+	//
+	// RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+	//
+	// request.setBody(heartbeat.encode());
+	// RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+	// return response.getCode() == ResponseCode.SUCCESS;
+	// }
 
 	public void consumerSendMessageBack(//
 			final String addr, //
@@ -1168,6 +1169,29 @@ public class MQClientAPIImpl {
 				e.printStackTrace();
 			}
 
+		}
+		default:
+			break;
+		}
+
+		throw new MQBrokerException(response.getCode(), response.getRemark());
+	}
+
+	public boolean offlineConsumerClientIdsByGroup(final String addr, final String consumerGroup,
+			final String clientIds, final long timeoutMillis) throws RemotingConnectException,
+			RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+
+		final OfflineConsumerClientIdsByGroupRequestHeader requestHeader = new OfflineConsumerClientIdsByGroupRequestHeader();
+		requestHeader.setClientIds(clientIds);
+		requestHeader.setConsumerGroup(consumerGroup);
+
+		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.OFFLINE_CONSUMER_IDS_BY_GROUP,
+				requestHeader);
+
+		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+		switch (response.getCode()) {
+		case ResponseCode.SUCCESS: {
+			return true;
 		}
 		default:
 			break;

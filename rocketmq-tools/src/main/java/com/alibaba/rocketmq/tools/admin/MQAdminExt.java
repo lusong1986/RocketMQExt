@@ -226,6 +226,21 @@ public interface MQAdminExt extends MQAdmin {
 			MQBrokerException;
 
 	/**
+	 * 
+	 * 下线consumerGroup的consumer clientids
+	 * 
+	 * @param consumerGroup
+	 * @param clientIds
+	 * @return
+	 * @throws RemotingException
+	 * @throws MQClientException
+	 * @throws InterruptedException
+	 * @throws MQBrokerException
+	 */
+	public Map<String, Boolean> offlineConsumerClientIdsByGroup(final String consumerGroup, final String clientIds)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+
+	/**
 	 * 获取Name Server地址列表
 	 * 
 	 * @return
