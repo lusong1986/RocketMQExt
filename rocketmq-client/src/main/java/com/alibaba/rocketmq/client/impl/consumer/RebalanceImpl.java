@@ -268,8 +268,9 @@ public abstract class RebalanceImpl {
 				}
 			}
 
+			log.info(">>>>>>>>>>>>>>>>rebalanceByTopic cidAll:" + cidAll);
 			if (null == cidAll) {
-				log.warn("doRebalance, {} {}, get consumer id list failed", consumerGroup, topic);
+				log.warn(">>>>>>>>>>>>>doRebalance, {} {}, get consumer id list failed", consumerGroup, topic);
 			}
 
 			if (mqSet != null && cidAll != null) {
@@ -298,6 +299,8 @@ public abstract class RebalanceImpl {
 				if (allocateResult != null) {
 					allocateResultSet.addAll(allocateResult);
 				}
+				log.info(">>>>>>>>>>>>>>>>rebalanceByTopic topic:" + topic + ",clientId:"
+						+ this.mQClientFactory.getClientId() + ",>>>" + allocateResultSet);
 
 				boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet);
 				if (changed) {
