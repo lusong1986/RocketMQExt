@@ -41,7 +41,6 @@ import com.alibaba.rocketmq.remoting.netty.NettySystemConfig;
 import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
 import com.alibaba.rocketmq.srvutil.ServerUtil;
 
-
 /**
  * Name server 启动入口
  * 
@@ -49,141 +48,152 @@ import com.alibaba.rocketmq.srvutil.ServerUtil;
  * @since 2013-7-5
  */
 public class NamesrvStartup {
-    public static Properties properties = null;
-    public static CommandLine commandLine = null;
+	public static Properties properties = null;
+	public static CommandLine commandLine = null;
 
+	public static Options buildCommandlineOptions(final Options options) {
+		Option opt = new Option("c", "configFile", true,
+				"Name server config properties file");
+		opt.setRequired(false);
+		options.addOption(opt);
 
-    public static Options buildCommandlineOptions(final Options options) {
-        Option opt = new Option("c", "configFile", true, "Name server config properties file");
-        opt.setRequired(false);
-        options.addOption(opt);
+		opt = new Option("p", "printConfigItem", false, "Print all config item");
+		opt.setRequired(false);
+		options.addOption(opt);
 
-        opt = new Option("p", "printConfigItem", false, "Print all config item");
-        opt.setRequired(false);
-        options.addOption(opt);
+		return options;
+	}
 
-        return options;
-    }
+	public static void main(String[] args) {
+		main0(args);
+	}
 
+	public static NamesrvController main0(String[] args) {
+		System.setProperty(RemotingCommand.RemotingVersionKey,
+				Integer.toString(MQVersion.CurrentVersion));
 
-    public static void main(String[] args) {
-        main0(args);
-    }
+		// Socket发送缓冲区大小
+		if (null == System
+				.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
+			NettySystemConfig.SocketSndbufSize = 2048;
+		}
 
+		// Socket接收缓冲区大小
+		if (null == System
+				.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
+			NettySystemConfig.SocketRcvbufSize = 1024;
+		}
 
-    public static NamesrvController main0(String[] args) {
-        System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
+		try {
+			// 检测包冲突
+			PackageConflictDetect.detectFastjson();
 
-        // Socket发送缓冲区大小
-        if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
-            NettySystemConfig.SocketSndbufSize = 2048;
-        }
+			// 解析命令行
+			Options options = ServerUtil.buildCommandlineOptions(new Options());
+			commandLine = ServerUtil.parseCmdLine("mqnamesrv", args,
+					buildCommandlineOptions(options), new PosixParser());
+			if (null == commandLine) {
+				System.exit(-1);
+				return null;
+			}
 
-        // Socket接收缓冲区大小
-        if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
-            NettySystemConfig.SocketRcvbufSize = 1024;
-        }
+			// 初始化配置文件
+			final NamesrvConfig namesrvConfig = new NamesrvConfig();
+			final NettyServerConfig nettyServerConfig = new NettyServerConfig();
+			nettyServerConfig.setListenPort(9876);
+			if (commandLine.hasOption('c')) {
+				String file = commandLine.getOptionValue('c');
+				if (file != null) {
+					InputStream in = new BufferedInputStream(
+							new FileInputStream(file));
+					properties = new Properties();
+					properties.load(in);
+					MixAll.properties2Object(properties, namesrvConfig);
+					MixAll.properties2Object(properties, nettyServerConfig);
+					System.out.println("load config properties file OK, "
+							+ file);
+					in.close();
+				}
+			}
 
-        try {
-            // 检测包冲突
-            PackageConflictDetect.detectFastjson();
+			// 打印默认配置
+			if (commandLine.hasOption('p')) {
+				MixAll.printObjectProperties(null, namesrvConfig);
+				MixAll.printObjectProperties(null, nettyServerConfig);
+				System.exit(0);
+			}
 
-            // 解析命令行
-            Options options = ServerUtil.buildCommandlineOptions(new Options());
-            commandLine =
-                    ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options),
-                        new PosixParser());
-            if (null == commandLine) {
-                System.exit(-1);
-                return null;
-            }
+			MixAll.properties2Object(
+					ServerUtil.commandLine2Properties(commandLine),
+					namesrvConfig);
 
-            // 初始化配置文件
-            final NamesrvConfig namesrvConfig = new NamesrvConfig();
-            final NettyServerConfig nettyServerConfig = new NettyServerConfig();
-            nettyServerConfig.setListenPort(9876);
-            if (commandLine.hasOption('c')) {
-                String file = commandLine.getOptionValue('c');
-                if (file != null) {
-                    InputStream in = new BufferedInputStream(new FileInputStream(file));
-                    properties = new Properties();
-                    properties.load(in);
-                    MixAll.properties2Object(properties, namesrvConfig);
-                    MixAll.properties2Object(properties, nettyServerConfig);
-                    System.out.println("load config properties file OK, " + file);
-                    in.close();
-                }
-            }
+			if (null == namesrvConfig.getRocketmqHome()) {
+				System.out
+						.println("Please set the "
+								+ MixAll.ROCKETMQ_HOME_ENV
+								+ " variable in your environment to match the location of the RocketMQ installation");
+				System.exit(-2);
+			}
 
-            // 打印默认配置
-            if (commandLine.hasOption('p')) {
-                MixAll.printObjectProperties(null, namesrvConfig);
-                MixAll.printObjectProperties(null, nettyServerConfig);
-                System.exit(0);
-            }
+			// 初始化Logback
+			LoggerContext lc = (LoggerContext) LoggerFactory
+					.getILoggerFactory();
+			JoranConfigurator configurator = new JoranConfigurator();
+			configurator.setContext(lc);
+			lc.reset();
+			configurator.doConfigure(namesrvConfig.getRocketmqHome()
+					+ "/conf/logback_namesrv.xml");
+			final Logger log = LoggerFactory
+					.getLogger(LoggerName.NamesrvLoggerName);
 
-            MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
+			// 打印服务器配置参数
+			MixAll.printObjectProperties(log, namesrvConfig);
+			MixAll.printObjectProperties(log, nettyServerConfig);
 
-            if (null == namesrvConfig.getRocketmqHome()) {
-                System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
-                        + " variable in your environment to match the location of the RocketMQ installation");
-                System.exit(-2);
-            }
+			// 初始化服务控制对象
+			final NamesrvController controller = new NamesrvController(
+					namesrvConfig, nettyServerConfig);
+			boolean initResult = controller.initialize();
+			if (!initResult) {
+				controller.shutdown();
+				System.exit(-3);
+			}
 
-            // 初始化Logback
-            LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
-            JoranConfigurator configurator = new JoranConfigurator();
-            configurator.setContext(lc);
-            lc.reset();
-            configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
-            final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
+			Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+				private volatile boolean hasShutdown = false;
+				private AtomicInteger shutdownTimes = new AtomicInteger(0);
 
-            // 打印服务器配置参数
-            MixAll.printObjectProperties(log, namesrvConfig);
-            MixAll.printObjectProperties(log, nettyServerConfig);
+				@Override
+				public void run() {
+					synchronized (this) {
+						log.info("shutdown hook was invoked, "
+								+ this.shutdownTimes.incrementAndGet());
+						if (!this.hasShutdown) {
+							this.hasShutdown = true;
+							long begineTime = System.currentTimeMillis();
+							controller.shutdown();
+							long consumingTimeTotal = System
+									.currentTimeMillis() - begineTime;
+							log.info("shutdown hook over, consuming time total(ms): "
+									+ consumingTimeTotal);
+						}
+					}
+				}
+			}, "ShutdownHook"));
 
-            // 初始化服务控制对象
-            final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
-            boolean initResult = controller.initialize();
-            if (!initResult) {
-                controller.shutdown();
-                System.exit(-3);
-            }
+			// 启动服务
+			controller.start();
 
-            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                private volatile boolean hasShutdown = false;
-                private AtomicInteger shutdownTimes = new AtomicInteger(0);
+			String tip = "The Name Server boot success.";
+			log.info(tip);
+			System.out.println(tip);
 
+			return controller;
+		} catch (Throwable e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
 
-                @Override
-                public void run() {
-                    synchronized (this) {
-                        log.info("shutdown hook was invoked, " + this.shutdownTimes.incrementAndGet());
-                        if (!this.hasShutdown) {
-                            this.hasShutdown = true;
-                            long begineTime = System.currentTimeMillis();
-                            controller.shutdown();
-                            long consumingTimeTotal = System.currentTimeMillis() - begineTime;
-                            log.info("shutdown hook over, consuming time total(ms): " + consumingTimeTotal);
-                        }
-                    }
-                }
-            }, "ShutdownHook"));
-
-            // 启动服务
-            controller.start();
-
-            String tip = "The Name Server boot success.";
-            log.info(tip);
-            System.out.println(tip);
-
-            return controller;
-        }
-        catch (Throwable e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
-
-        return null;
-    }
+		return null;
+	}
 }

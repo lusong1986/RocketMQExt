@@ -570,6 +570,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 	}
 
 	public void shutdown() {
+		System.out.println(serviceState);
+		log.info(">>>>>>>>>>>>shutdown consumer, now serviceState is : " + serviceState);
 		switch (this.serviceState) {
 		case CREATE_JUST:
 			break;

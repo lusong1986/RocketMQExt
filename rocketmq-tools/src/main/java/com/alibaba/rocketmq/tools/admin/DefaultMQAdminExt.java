@@ -200,10 +200,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 		return defaultMQAdminExtImpl.examineProducerConnectionInfo(producerGroup, topic);
 	}
 
-	public Set<String> examineProducerGroups()
-            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
-        return defaultMQAdminExtImpl.examineProducerGroups();
-    }
+	public Set<String> examineProducerGroups() throws RemotingException, MQClientException, InterruptedException,
+			MQBrokerException {
+		return defaultMQAdminExtImpl.examineProducerGroups();
+	}
 
 	@Override
 	public int wipeWritePermOfBroker(final String namesrvAddr, String brokerName) throws RemotingCommandException,

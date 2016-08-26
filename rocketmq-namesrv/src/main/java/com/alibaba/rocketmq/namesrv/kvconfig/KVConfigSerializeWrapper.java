@@ -19,7 +19,6 @@ import java.util.HashMap;
 
 import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
 
-
 /**
  * KV配置序列化，json包装
  * 
@@ -27,15 +26,14 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingSerializable;
  * @since 2013-7-25
  */
 public class KVConfigSerializeWrapper extends RemotingSerializable {
-    private HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable;
+	private HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable;
 
+	public HashMap<String, HashMap<String, String>> getConfigTable() {
+		return configTable;
+	}
 
-    public HashMap<String, HashMap<String, String>> getConfigTable() {
-        return configTable;
-    }
-
-
-    public void setConfigTable(HashMap<String, HashMap<String, String>> configTable) {
-        this.configTable = configTable;
-    }
+	public void setConfigTable(
+			HashMap<String, HashMap<String, String>> configTable) {
+		this.configTable = configTable;
+	}
 }

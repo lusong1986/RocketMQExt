@@ -34,7 +34,6 @@ import com.alibaba.rocketmq.remoting.RemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyRemotingServer;
 import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
 
-
 /**
  * Name Server服务控制
  * 
@@ -42,125 +41,118 @@ import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
  * @since 2013-7-5
  */
 public class NamesrvController {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
-    // Name Server配置
-    private final NamesrvConfig namesrvConfig;
-    // 通信层配置
-    private final NettyServerConfig nettyServerConfig;
-    // 服务端通信层对象
-    private RemotingServer remotingServer;
-    // 接收Broker连接事件
-    private BrokerHousekeepingService brokerHousekeepingService;
-    // 服务端网络请求处理线程池
-    private ExecutorService remotingExecutor;
+	private static final Logger log = LoggerFactory
+			.getLogger(LoggerName.NamesrvLoggerName);
+	// Name Server配置
+	private final NamesrvConfig namesrvConfig;
+	// 通信层配置
+	private final NettyServerConfig nettyServerConfig;
+	// 服务端通信层对象
+	private RemotingServer remotingServer;
+	// 接收Broker连接事件
+	private BrokerHousekeepingService brokerHousekeepingService;
+	// 服务端网络请求处理线程池
+	private ExecutorService remotingExecutor;
 
-    // 定时线程
-    private final ScheduledExecutorService scheduledExecutorService = Executors
-        .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("NSScheduledThread"));
+	// 定时线程
+	private final ScheduledExecutorService scheduledExecutorService = Executors
+			.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
+					"NSScheduledThread"));
 
-    /**
-     * 核心数据结构
-     */
-    private final KVConfigManager kvConfigManager;
-    private final RouteInfoManager routeInfoManager;
+	/**
+	 * 核心数据结构
+	 */
+	private final KVConfigManager kvConfigManager;
+	private final RouteInfoManager routeInfoManager;
 
+	public NamesrvController(NamesrvConfig namesrvConfig,
+			NettyServerConfig nettyServerConfig) {
+		this.namesrvConfig = namesrvConfig;
+		this.nettyServerConfig = nettyServerConfig;
+		this.kvConfigManager = new KVConfigManager(this);
+		this.routeInfoManager = new RouteInfoManager();
+		this.brokerHousekeepingService = new BrokerHousekeepingService(this);
+	}
 
-    public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
-        this.namesrvConfig = namesrvConfig;
-        this.nettyServerConfig = nettyServerConfig;
-        this.kvConfigManager = new KVConfigManager(this);
-        this.routeInfoManager = new RouteInfoManager();
-        this.brokerHousekeepingService = new BrokerHousekeepingService(this);
-    }
+	public boolean initialize() {
+		// 加载KV配置
+		this.kvConfigManager.load();
 
+		// 初始化通信层
+		this.remotingServer = new NettyRemotingServer(this.nettyServerConfig,
+				this.brokerHousekeepingService);
 
-    public boolean initialize() {
-        // 加载KV配置
-        this.kvConfigManager.load();
+		// 初始化线程池
+		this.remotingExecutor = Executors.newFixedThreadPool(
+				nettyServerConfig.getServerWorkerThreads(),
+				new ThreadFactoryImpl("RemotingExecutorThread_"));
 
-        // 初始化通信层
-        this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
+		this.registerProcessor();
 
-        // 初始化线程池
-        this.remotingExecutor =
-                Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(),
-                    new ThreadFactoryImpl("RemotingExecutorThread_"));
+		// 增加定时任务
+		this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
-        this.registerProcessor();
+			@Override
+			public void run() {
+				NamesrvController.this.routeInfoManager.scanNotActiveBroker();
+			}
+		}, 5, 10, TimeUnit.SECONDS);
 
-        // 增加定时任务
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+		this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
-            @Override
-            public void run() {
-                NamesrvController.this.routeInfoManager.scanNotActiveBroker();
-            }
-        }, 5, 10, TimeUnit.SECONDS);
+			@Override
+			public void run() {
+				NamesrvController.this.kvConfigManager.printAllPeriodically();
+			}
+		}, 1, 10, TimeUnit.MINUTES);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+		// this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+		//
+		// @Override
+		// public void run() {
+		// NamesrvController.this.routeInfoManager.printAllPeriodically();
+		// }
+		// }, 1, 5, TimeUnit.MINUTES);
 
-            @Override
-            public void run() {
-                NamesrvController.this.kvConfigManager.printAllPeriodically();
-            }
-        }, 1, 10, TimeUnit.MINUTES);
+		return true;
+	}
 
-        // this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-        //
-        // @Override
-        // public void run() {
-        // NamesrvController.this.routeInfoManager.printAllPeriodically();
-        // }
-        // }, 1, 5, TimeUnit.MINUTES);
+	private void registerProcessor() {
+		this.remotingServer.registerDefaultProcessor(
+				new DefaultRequestProcessor(this), this.remotingExecutor);
+	}
 
-        return true;
-    }
+	public void start() throws Exception {
+		this.remotingServer.start();
+	}
 
+	public void shutdown() {
+		this.remotingServer.shutdown();
+		this.remotingExecutor.shutdown();
+		this.scheduledExecutorService.shutdown();
+	}
 
-    private void registerProcessor() {
-        this.remotingServer
-            .registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
-    }
+	public NamesrvConfig getNamesrvConfig() {
+		return namesrvConfig;
+	}
 
+	public NettyServerConfig getNettyServerConfig() {
+		return nettyServerConfig;
+	}
 
-    public void start() throws Exception {
-        this.remotingServer.start();
-    }
+	public KVConfigManager getKvConfigManager() {
+		return kvConfigManager;
+	}
 
+	public RouteInfoManager getRouteInfoManager() {
+		return routeInfoManager;
+	}
 
-    public void shutdown() {
-        this.remotingServer.shutdown();
-        this.remotingExecutor.shutdown();
-        this.scheduledExecutorService.shutdown();
-    }
+	public RemotingServer getRemotingServer() {
+		return remotingServer;
+	}
 
-
-    public NamesrvConfig getNamesrvConfig() {
-        return namesrvConfig;
-    }
-
-
-    public NettyServerConfig getNettyServerConfig() {
-        return nettyServerConfig;
-    }
-
-
-    public KVConfigManager getKvConfigManager() {
-        return kvConfigManager;
-    }
-
-
-    public RouteInfoManager getRouteInfoManager() {
-        return routeInfoManager;
-    }
-
-
-    public RemotingServer getRemotingServer() {
-        return remotingServer;
-    }
-
-
-    public void setRemotingServer(RemotingServer remotingServer) {
-        this.remotingServer = remotingServer;
-    }
+	public void setRemotingServer(RemotingServer remotingServer) {
+		this.remotingServer = remotingServer;
+	}
 }
