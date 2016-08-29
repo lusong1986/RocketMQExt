@@ -389,7 +389,10 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		} else {
 			ignoreConsumerClientIds += "," + requestHeader.getClientIds();
 		}
-		ignoreConsumerClientIdsTable.put(requestHeader.getConsumerGroup(), ignoreConsumerClientIds);
+
+		if (ignoreConsumerClientIds.length() <= 2000) {
+			ignoreConsumerClientIdsTable.put(requestHeader.getConsumerGroup(), ignoreConsumerClientIds);
+		}
 
 		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		response.setCode(ResponseCode.SUCCESS);
