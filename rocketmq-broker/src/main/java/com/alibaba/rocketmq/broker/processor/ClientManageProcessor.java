@@ -445,6 +445,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 			ignoreConsumerClientIds += "," + requestHeader.getClientIds();
 		}
 
+		// clear consumer address queue map
+		ConsumerAddressRecorder.getConsumerAddressQueueMap().clear();
+
 		if (ignoreConsumerClientIds.length() <= 2000) {
 			ignoreConsumerClientIdsTable.put(requestHeader.getConsumerGroup(), ignoreConsumerClientIds);
 		}
