@@ -20,6 +20,7 @@ import java.net.SocketAddress;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -240,12 +241,17 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		final GetQueuesByConsumerAddressRequestHeader requestHeader = (GetQueuesByConsumerAddressRequestHeader) request
 				.decodeCommandCustomHeader(GetQueuesByConsumerAddressRequestHeader.class);
 
-		String topicQueues = ConsumerAddressRecorder.getConsumerAddressQueueMap().get(
+		final Set<String> queueSet = ConsumerAddressRecorder.getConsumerAddressQueueMap().get(
 				requestHeader.getConsumerAddress());
-		log.info(">>>>>>>>>>>getQueuesByConsumerAddress, consumer address:" + requestHeader.getConsumerAddress()
-				+ ", topicQueues:" + topicQueues);
-		if (StringUtils.isNotBlank(topicQueues)) {
+
+		if (!queueSet.isEmpty()) {
 			try {
+				String topicQueues = "";
+				for (String topicQueue : queueSet) {
+					topicQueues += topicQueue + ",";
+				}
+				log.info(">>>>>>>>>>>getQueuesByConsumerAddress, consumer address:"
+						+ requestHeader.getConsumerAddress() + ", topicQueues:" + topicQueues);
 				response.setBody(topicQueues.getBytes("UTF-8"));
 			} catch (UnsupportedEncodingException e) {
 				log.error("encoding exception:" + e.getMessage());
