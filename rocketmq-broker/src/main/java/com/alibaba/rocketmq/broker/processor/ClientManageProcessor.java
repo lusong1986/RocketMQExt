@@ -111,7 +111,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 					log.error("schedule consumer client ids error.", e);
 				}
 			}
-		}, 30, 60, TimeUnit.SECONDS);
+		}, 30, 100, TimeUnit.SECONDS);
 	}
 
 	@Override
