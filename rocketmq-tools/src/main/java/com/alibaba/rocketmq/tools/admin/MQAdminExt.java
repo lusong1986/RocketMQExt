@@ -241,6 +241,20 @@ public interface MQAdminExt extends MQAdmin {
 			throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
 
 	/**
+	 * 
+	 * 根据消费者address查询这个消费者绑定了哪些queue
+	 * 
+	 * @param consumerAddress
+	 * @return
+	 * @throws RemotingException
+	 * @throws MQClientException
+	 * @throws InterruptedException
+	 * @throws MQBrokerException
+	 */
+	public Map<String, String> getQueuesByConsumerAddress(final String consumerAddress) throws RemotingException,
+			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException;
+
+	/**
 	 * 获取Name Server地址列表
 	 * 
 	 * @return

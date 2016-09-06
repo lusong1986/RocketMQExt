@@ -395,4 +395,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 			InterruptedException {
 		return this.defaultMQAdminExtImpl.ViewBrokerStatsData(brokerAddr, statsName, statsKey);
 	}
+
+	@Override
+	public Map<String, String> getQueuesByConsumerAddress(String consumerAddress) throws RemotingException,
+			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException {
+		return defaultMQAdminExtImpl.getQueuesByConsumerAddress(consumerAddress);
+	}
 }

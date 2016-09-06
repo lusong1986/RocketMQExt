@@ -595,7 +595,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 		while (iterator.hasNext()) {
 			BrokerData brokerData = iterator.next();
 			final String brokAddr = brokerData.selectBrokerAddr();
-			log.info(">>>>>>>>>>examineProducerGroups broker addr:" + brokAddr);
+			log.info(">>>>>>>>>>offlineConsumerClientIdsByGroup broker addr:" + brokAddr);
 
 			if (brokAddr != null) {
 				boolean offline = this.mqClientInstance.getMQClientAPIImpl().offlineConsumerClientIdsByGroup(brokAddr,
@@ -860,5 +860,29 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 			throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException,
 			InterruptedException {
 		return this.mqClientInstance.getMQClientAPIImpl().ViewBrokerStatsData(brokerAddr, statsName, statsKey, 3000);
+	}
+
+	@Override
+	public Map<String, String> getQueuesByConsumerAddress(String consumerAddress) throws RemotingException,
+			MQClientException, InterruptedException, MQBrokerException,UnsupportedEncodingException {
+		Collection<BrokerData> brokerDatas = this.examineBrokerClusterInfo().getBrokerAddrTable().values();
+		if (null == brokerDatas || brokerDatas.size() == 0) {
+			throw new MQClientException("Not found the broker data", null);
+		}
+
+		Map<String, String> map = new HashMap<String, String>();
+		final Iterator<BrokerData> iterator = brokerDatas.iterator();
+		while (iterator.hasNext()) {
+			BrokerData brokerData = iterator.next();
+			final String brokAddr = brokerData.selectBrokerAddr();
+			log.info(">>>>>>>>>>getQueuesByConsumerAddress broker addr:" + brokAddr);
+
+			if (brokAddr != null) {
+				String offline = this.mqClientInstance.getMQClientAPIImpl().getQueuesByConsumerAddress(brokAddr, consumerAddress, 5000);
+				map.put(brokAddr, offline);
+			}
+		}
+
+		return map;
 	}
 }

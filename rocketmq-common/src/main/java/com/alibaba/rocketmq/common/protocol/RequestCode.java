@@ -53,6 +53,9 @@ public class RequestCode {
 	// 下线一批consumer client ids，逗号分隔
 	public static final int OFFLINE_CONSUMER_IDS_BY_GROUP = 335;
 
+	// 根据消费者address（1.1.1.1:2222）查询绑定的queue
+	public static final int GET_QUEUES_BY_CONSUMER_ADDRESS = 336;
+
 	// Broker 主动向Producer回查事务状态
 	public static final int CHECK_TRANSACTION_STATE = 39;
 	// Broker Broker通知Consumer列表变化

@@ -14,6 +14,7 @@ package com.alibaba.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 
+import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Iterator;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
 import com.alibaba.rocketmq.broker.client.ClientChannelInfo;
+import com.alibaba.rocketmq.broker.client.ConsumerAddressRecorder;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageHook;
@@ -44,6 +46,8 @@ import com.alibaba.rocketmq.common.protocol.ResponseCode;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseBody;
 import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupResponseHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetQueuesByConsumerAddressRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetQueuesByConsumerAddressResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.OfflineConsumerClientIdsByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
@@ -90,6 +94,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 				try {
 					log.info("clearing ignoreConsumerClientIdsTable......");
 					ignoreConsumerClientIdsTable.clear();
+
+					log.info("clearing getConsumerAddressQueueMap......");
+					ConsumerAddressRecorder.getConsumerAddressQueueMap().clear();
 				} catch (Exception e) {
 					log.error("schedule consumer client ids error.", e);
 				}
@@ -111,6 +118,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 		case RequestCode.OFFLINE_CONSUMER_IDS_BY_GROUP:
 			return this.offlineConsumerClientIdsByGroup(ctx, request);
+
+		case RequestCode.GET_QUEUES_BY_CONSUMER_ADDRESS:
+			return this.getQueuesByConsumerAddress(ctx, request);
 
 			// 更新Consumer Offset
 		case RequestCode.UPDATE_CONSUMER_OFFSET:
@@ -220,6 +230,37 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 			}
 		}
 
+		return response;
+	}
+
+	public RemotingCommand getQueuesByConsumerAddress(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand
+				.createResponseCommand(GetQueuesByConsumerAddressResponseHeader.class);
+		final GetQueuesByConsumerAddressRequestHeader requestHeader = (GetQueuesByConsumerAddressRequestHeader) request
+				.decodeCommandCustomHeader(GetQueuesByConsumerAddressRequestHeader.class);
+
+		String topicQueues = ConsumerAddressRecorder.getConsumerAddressQueueMap().get(
+				requestHeader.getConsumerAddress());
+		log.info(">>>>>>>>>>>getQueuesByConsumerAddress, consumer address:" + requestHeader.getConsumerAddress()
+				+ ", topicQueues:" + topicQueues);
+		if (StringUtils.isNotBlank(topicQueues)) {
+			try {
+				response.setBody(topicQueues.getBytes("UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				log.error("encoding exception:" + e.getMessage());
+				throw new RemotingCommandException("getQueuesByConsumerAddress encoding exception.");
+			}
+			response.setCode(ResponseCode.SUCCESS);
+			response.setRemark(null);
+			return response;
+		} else {
+			log.warn("getQueuesByConsumerAddress failed, {} {}", requestHeader.getConsumerAddress(),
+					RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+		}
+
+		response.setCode(ResponseCode.SYSTEM_ERROR);
+		response.setRemark("no consumer for this group, " + requestHeader.getConsumerAddress());
 		return response;
 	}
 

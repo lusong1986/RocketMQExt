@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alibaba.rocketmq.broker.BrokerController;
+import com.alibaba.rocketmq.broker.client.ConsumerAddressRecorder;
 import com.alibaba.rocketmq.broker.client.ConsumerGroupInfo;
 import com.alibaba.rocketmq.broker.longpolling.PullRequest;
 import com.alibaba.rocketmq.broker.mqtrace.ConsumeMessageContext;
@@ -81,6 +82,9 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 	public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
 			throws RemotingCommandException {
 		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>PullMessageProcessor.processRequest:" + request);
+
+		String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>PullMessageProcessor.channelRemoteAddr:" + channelRemoteAddr);
 
 		RemotingCommand response = this.processRequest(ctx.channel(), request, true);
 		return response;
@@ -157,6 +161,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 		final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
 		final PullMessageRequestHeader requestHeader = (PullMessageRequestHeader) request
 				.decodeCommandCustomHeader(PullMessageRequestHeader.class);
+
+		// put queueId consumer addr to map
+		ConsumerAddressRecorder.putConsumerAddress(RemotingHelper.parseChannelRemoteAddr(channel),
+				requestHeader.getTopic() + "-" + requestHeader.getQueueId());
 
 		// 由于使用sendfile，所以必须要设置
 		response.setOpaque(request.getOpaque());

@@ -91,6 +91,7 @@ import com.alibaba.rocketmq.common.protocol.header.GetMaxOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetMinOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetProducerConnectionListRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.GetQueuesByConsumerAddressRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.OfflineConsumerClientIdsByGroupRequestHeader;
@@ -1169,6 +1170,28 @@ public class MQClientAPIImpl {
 				e.printStackTrace();
 			}
 
+		}
+		default:
+			break;
+		}
+
+		throw new MQBrokerException(response.getCode(), response.getRemark());
+	}
+
+	public String getQueuesByConsumerAddress(final String addr, final String consumerAddress, final long timeoutMillis)
+			throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+			InterruptedException, MQBrokerException, UnsupportedEncodingException {
+
+		final GetQueuesByConsumerAddressRequestHeader requestHeader = new GetQueuesByConsumerAddressRequestHeader();
+		requestHeader.setConsumerAddress(consumerAddress);
+
+		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_QUEUES_BY_CONSUMER_ADDRESS,
+				requestHeader);
+
+		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+		switch (response.getCode()) {
+		case ResponseCode.SUCCESS: {
+			return new String(response.getBody(), "UTF-8");
 		}
 		default:
 			break;
