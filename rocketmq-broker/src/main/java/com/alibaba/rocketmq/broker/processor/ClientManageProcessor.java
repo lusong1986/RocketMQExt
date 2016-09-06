@@ -95,14 +95,23 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 				try {
 					log.info("clearing ignoreConsumerClientIdsTable......");
 					ignoreConsumerClientIdsTable.clear();
+				} catch (Exception e) {
+					log.error("schedule consumer client ids error.", e);
+				}
+			}
+		}, initialDelay, period, TimeUnit.MILLISECONDS);
 
+		this.consumerClientIdsScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+			@Override
+			public void run() {
+				try {
 					log.info("clearing getConsumerAddressQueueMap......");
 					ConsumerAddressRecorder.getConsumerAddressQueueMap().clear();
 				} catch (Exception e) {
 					log.error("schedule consumer client ids error.", e);
 				}
 			}
-		}, initialDelay, period, TimeUnit.MILLISECONDS);
+		}, 10, 30, TimeUnit.SECONDS);
 	}
 
 	@Override
