@@ -878,8 +878,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 			log.info(">>>>>>>>>>getQueuesByConsumerAddress broker addr:" + brokAddr);
 
 			if (brokAddr != null) {
-				String offline = this.mqClientInstance.getMQClientAPIImpl().getQueuesByConsumerAddress(brokAddr, consumerAddress, 5000);
-				map.put(brokAddr, offline);
+				String queues = this.mqClientInstance.getMQClientAPIImpl().getQueuesByConsumerAddress(brokAddr, consumerAddress, 5000);
+				map.put(brokAddr, queues);
 			}
 		}
 
