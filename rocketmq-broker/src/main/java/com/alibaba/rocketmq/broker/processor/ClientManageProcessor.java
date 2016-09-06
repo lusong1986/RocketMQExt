@@ -111,7 +111,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 					log.error("schedule consumer client ids error.", e);
 				}
 			}
-		}, 10, 30, TimeUnit.SECONDS);
+		}, 30, 120, TimeUnit.SECONDS);
 	}
 
 	@Override
@@ -252,8 +252,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 		final Set<String> queueSet = ConsumerAddressRecorder.getConsumerAddressQueueMap().get(
 				requestHeader.getConsumerAddress());
-
-		if (!queueSet.isEmpty()) {
+		if (queueSet != null && !queueSet.isEmpty()) {
 			try {
 				String topicQueues = "";
 				for (String topicQueue : queueSet) {
