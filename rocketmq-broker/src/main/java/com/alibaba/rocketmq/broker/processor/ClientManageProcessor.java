@@ -20,7 +20,6 @@ import java.net.SocketAddress;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -250,12 +249,12 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		final GetQueuesByConsumerAddressRequestHeader requestHeader = (GetQueuesByConsumerAddressRequestHeader) request
 				.decodeCommandCustomHeader(GetQueuesByConsumerAddressRequestHeader.class);
 
-		final Set<String> queueSet = ConsumerAddressRecorder.getConsumerAddressQueueMap().get(
+		final ConcurrentHashMap<String, String> queueSet = ConsumerAddressRecorder.getConsumerAddressQueueMap().get(
 				requestHeader.getConsumerAddress());
 		if (queueSet != null && !queueSet.isEmpty()) {
 			try {
 				String topicQueues = "";
-				for (String topicQueue : queueSet) {
+				for (String topicQueue : queueSet.keySet()) {
 					topicQueues += topicQueue + ",";
 				}
 				log.info(">>>>>>>>>>>getQueuesByConsumerAddress, consumer address:"
