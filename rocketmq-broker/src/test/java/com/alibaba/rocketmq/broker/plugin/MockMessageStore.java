@@ -269,4 +269,18 @@ public class MockMessageStore implements MessageStore {
         return false;
     }
 
+
+	@Override
+	public long getEarliestMessageTime() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+
+	@Override
+	public long lockTimeMills() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

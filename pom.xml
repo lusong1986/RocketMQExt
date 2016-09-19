@@ -120,6 +120,7 @@
             </resource>
         </resources>
 
+<pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -294,6 +295,7 @@
                 </configuration>
             </plugin>
         </plugins>
+        </pluginManagement>
     </build>
 
     <profiles>
