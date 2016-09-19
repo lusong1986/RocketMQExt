@@ -89,8 +89,7 @@ public class UpdateBrokerConfigSubCommand implements SubCommand {
                 System.out.printf("update broker config success, %s\n", brokerAddr);
                 return;
 
-            }
-            else if (commandLine.hasOption('c')) {
+            } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
 
                 defaultMQAdminExt.start();
@@ -98,18 +97,20 @@ public class UpdateBrokerConfigSubCommand implements SubCommand {
                 Set<String> masterSet =
                         CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String brokerAddr : masterSet) {
-                    defaultMQAdminExt.updateBrokerConfig(brokerAddr, properties);
-                    System.out.printf("update broker config success, %s\n", brokerAddr);
+                    try {
+                        defaultMQAdminExt.updateBrokerConfig(brokerAddr, properties);
+                        System.out.printf("update broker config success, %s\n", brokerAddr);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
                 return;
             }
 
             ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             defaultMQAdminExt.shutdown();
         }
     }
