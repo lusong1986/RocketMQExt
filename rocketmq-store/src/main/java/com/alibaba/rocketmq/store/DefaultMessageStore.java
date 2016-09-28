@@ -92,7 +92,7 @@ public class DefaultMessageStore implements MessageStore {
 
 	// 预分配MapedFile对象服务
 	private final AllocateMapedFileService allocateMapedFileService;
-	// 从物理队列解析消息重新发送到逻辑队列
+	// 从物理队列解析消息重新发送到逻辑队列，只有slave有这个service
 	private final ReputMessageService reputMessageService;
 	// HA服务
 	private final HAService haService;
