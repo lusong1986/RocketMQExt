@@ -193,13 +193,19 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 			MQBrokerException, RemotingException, MQClientException {
 		return defaultMQAdminExtImpl.examineConsumerConnectionInfo(consumerGroup);
 	}
-
+	
+	@Override
+	public Map<String, ConsumerConnection> examineConsumerConnectionInfoByBroker(String consumerGroup) throws InterruptedException,
+			MQBrokerException, RemotingException, MQClientException {
+		return defaultMQAdminExtImpl.examineConsumerConnectionInfoByBroker(consumerGroup);
+	}
+	
 	@Override
 	public ProducerConnection examineProducerConnectionInfo(String producerGroup, final String topic)
 			throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
 		return defaultMQAdminExtImpl.examineProducerConnectionInfo(producerGroup, topic);
 	}
-
+	
 	@Override
 	public Set<String> examineProducerGroups() throws RemotingException, MQClientException, InterruptedException,
 			MQBrokerException {
@@ -400,5 +406,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 	public Map<String, String> getQueuesByConsumerAddress(String consumerAddress) throws RemotingException,
 			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException {
 		return defaultMQAdminExtImpl.getQueuesByConsumerAddress(consumerAddress);
+	}
+	
+	@Override
+	public String getQueuesByBrokerAndConsumerAddress(String brokAddr,String consumerAddress) throws RemotingException,
+			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException {
+		return defaultMQAdminExtImpl.getQueuesByBrokerAndConsumerAddress(brokAddr, consumerAddress);
 	}
 }

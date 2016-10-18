@@ -25,7 +25,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 
 import com.alibaba.rocketmq.client.QueryResult;
@@ -317,6 +319,30 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 		}
 
 		return result;
+	}
+
+	public Map<String, ConsumerConnection> examineConsumerConnectionInfoByBroker(String consumerGroup)
+			throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
+		String topic = MixAll.getRetryTopic(consumerGroup);
+		TopicRouteData topicRouteData = this.examineTopicRouteInfo(topic);
+
+		final Map<String, ConsumerConnection> map = new ConcurrentHashMap<String, ConsumerConnection>();
+		for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+			String addr = bd.selectBrokerAddr();
+			if (addr != null) {
+				try {
+					final ConsumerConnection consumerConnectionList = this.mqClientInstance.getMQClientAPIImpl()
+							.getConsumerConnectionList(addr, consumerGroup, 3000);
+					if (consumerConnectionList != null) {
+						map.put(addr, consumerConnectionList);
+					}
+				} catch (Exception e) {
+					log.warn("examineConsumerConnectionInfoByBroker warn:" + e.getMessage());
+				}
+			}
+		}
+
+		return map;
 	}
 
 	@Override
@@ -864,7 +890,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
 	@Override
 	public Map<String, String> getQueuesByConsumerAddress(String consumerAddress) throws RemotingException,
-			MQClientException, InterruptedException, MQBrokerException,UnsupportedEncodingException {
+			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException {
 		Collection<BrokerData> brokerDatas = this.examineBrokerClusterInfo().getBrokerAddrTable().values();
 		if (null == brokerDatas || brokerDatas.size() == 0) {
 			throw new MQClientException("Not found the broker data", null);
@@ -878,11 +904,30 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 			log.info(">>>>>>>>>>getQueuesByConsumerAddress broker addr:" + brokAddr);
 
 			if (brokAddr != null) {
-				String queues = this.mqClientInstance.getMQClientAPIImpl().getQueuesByConsumerAddress(brokAddr, consumerAddress, 5000);
-				map.put(brokAddr, queues);
+				try {
+					String queues = this.mqClientInstance.getMQClientAPIImpl().getQueuesByConsumerAddress(brokAddr,
+							consumerAddress, 5000);
+					map.put(brokAddr, queues);
+					log.info(">>>>>>>>>>getQueuesByConsumerAddress broker addr:" + brokAddr + ">>>consumerAddress:"
+							+ consumerAddress + ">>>queues:" + queues);
+				} catch (Exception e) {
+				}
 			}
 		}
 
 		return map;
+	}
+
+	@Override
+	public String getQueuesByBrokerAndConsumerAddress(final String brokAddr, String consumerAddress)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException,
+			UnsupportedEncodingException {
+		if (StringUtils.isEmpty(brokAddr)) {
+			throw new MQClientException("brokAddr is empty", null);
+		}
+
+		String queues = this.mqClientInstance.getMQClientAPIImpl().getQueuesByConsumerAddress(brokAddr,
+				consumerAddress, 5000);
+		return queues;
 	}
 }

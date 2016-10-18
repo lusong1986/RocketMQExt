@@ -198,6 +198,9 @@ public interface MQAdminExt extends MQAdmin {
 	public ConsumerConnection examineConsumerConnectionInfo(final String consumerGroup)
 			throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
 			InterruptedException, MQBrokerException, RemotingException, MQClientException;
+	
+	public Map<String, ConsumerConnection> examineConsumerConnectionInfoByBroker(String consumerGroup)
+			throws InterruptedException, MQBrokerException, RemotingException, MQClientException;
 
 	/**
 	 * 查看Producer网络连接
@@ -212,7 +215,7 @@ public interface MQAdminExt extends MQAdmin {
 	 */
 	public ProducerConnection examineProducerConnectionInfo(final String producerGroup, final String topic)
 			throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
-
+	
 	/**
 	 * 所有生产组
 	 * 
@@ -253,6 +256,10 @@ public interface MQAdminExt extends MQAdmin {
 	 */
 	public Map<String, String> getQueuesByConsumerAddress(final String consumerAddress) throws RemotingException,
 			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException;
+	
+	public String getQueuesByBrokerAndConsumerAddress(final String brokAddr, String consumerAddress)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException,
+			UnsupportedEncodingException;
 
 	/**
 	 * 获取Name Server地址列表
