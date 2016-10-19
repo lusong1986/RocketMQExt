@@ -20,6 +20,7 @@ import java.net.SocketAddress;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -105,7 +106,16 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 			@Override
 			public void run() {
 				try {
-					log.info("clearing getConsumerAddressQueueMap......");
+					log.info("start clearing consumerAddressQueueMap......");
+
+					final ConcurrentHashMap<String/* channelRemoteAddr */, ConcurrentHashMap<String, String>/* topic-queueId */> consumerAddressQueueMap = ConsumerAddressRecorder
+							.getConsumerAddressQueueMap();
+					for (Entry<String, ConcurrentHashMap<String, String>> consumeAddressEntry : consumerAddressQueueMap
+							.entrySet()) {
+						log.info(">>>>>>>>>>>>>>>>>>clientAddress:" + consumeAddressEntry.getKey() + ">>>>>>>"
+								+ consumeAddressEntry.getValue().keySet());
+					}
+
 					ConsumerAddressRecorder.getConsumerAddressQueueMap().clear();
 				} catch (Exception e) {
 					log.error("schedule consumer client ids error.", e);
