@@ -442,7 +442,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		if (null == ignoreConsumerClientIds) {
 			ignoreConsumerClientIds = requestHeader.getClientIds();
 		} else {
-			ignoreConsumerClientIds += "," + requestHeader.getClientIds();
+			if (!ignoreConsumerClientIds.contains(requestHeader.getClientIds())) {
+				ignoreConsumerClientIds += "," + requestHeader.getClientIds();
+			}
 		}
 
 		// clear consumer address queue map
