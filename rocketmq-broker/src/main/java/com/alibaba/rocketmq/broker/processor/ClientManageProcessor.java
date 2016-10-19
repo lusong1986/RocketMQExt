@@ -92,7 +92,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 			@Override
 			public void run() {
 				try {
-					log.info("clearing ignoreConsumerClientIdsTable......");
+					log.info("clearing ignoreConsumerClientIdsTable......>>>>>>>>>>>>>>>"
+							+ ignoreConsumerClientIdsTable);
 					ignoreConsumerClientIdsTable.clear();
 				} catch (Exception e) {
 					log.error("schedule consumer client ids error.", e);
