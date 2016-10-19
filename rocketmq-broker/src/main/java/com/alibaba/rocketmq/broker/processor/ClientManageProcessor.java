@@ -288,23 +288,22 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(
 				requestHeader.getConsumerGroup());
 		if (consumerGroupInfo != null) {
-			List<String> clientIds = consumerGroupInfo.getAllClientId();
+			final List<String> clientIds = consumerGroupInfo.getAllClientId();
 
 			final String filterConsumerClientIds = ignoreConsumerClientIdsTable.get(requestHeader.getConsumerGroup());
 			if (StringUtils.isNotBlank(filterConsumerClientIds)) {
-				final Iterator<String> iterator = clientIds.iterator();
-				while (iterator.hasNext()) {
-					final String clientId = iterator.next();
+				final Iterator<String> clientIdsIterator = clientIds.iterator();
+				while (clientIdsIterator.hasNext()) {
+					final String clientId = clientIdsIterator.next();
 					if (filterConsumerClientIds.contains(clientId)) {
-						log.info(">>>>>>>>>>>============remove clientId:" + clientId + " for consumer group:"
+						log.info(">>>>>>>>>>>remove clientId:" + clientId + " for consumer group:"
 								+ requestHeader.getConsumerGroup());
-						iterator.remove();
+						clientIdsIterator.remove();
 					}
 				}
+				log.info(">>>>>>>>>>>after filtering offline clients, consumer clientIds:" + clientIds
+						+ " for consumer group:" + requestHeader.getConsumerGroup());
 			}
-
-			log.info(">>>>>>>>>>>============after filtering, consumer clientIds:" + clientIds + " for consumer group:"
-					+ requestHeader.getConsumerGroup());
 
 			if (!clientIds.isEmpty()) {
 				GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
