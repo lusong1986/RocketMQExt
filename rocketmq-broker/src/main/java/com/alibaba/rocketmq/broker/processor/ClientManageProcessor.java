@@ -89,7 +89,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 		// 两天清理一次下线的consumer ids
 		final long initialDelay = UtilAll.computTwodaysAfterMorningTimeMillis() - System.currentTimeMillis();
-		final long period = 1000 * 60 * 60 * 24 * 2; // two days
+		final long period = 1000 * 60 * 60 * 24 * 3; // 3 days
 		this.consumerClientIdsScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 			@Override
 			public void run() {
