@@ -87,8 +87,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 	public ClientManageProcessor(final BrokerController brokerController) {
 		this.brokerController = brokerController;
 
-		final long initialDelay = UtilAll.computNextMorningTimeMillis() - System.currentTimeMillis();
-		final long period = 1000 * 60 * 60 * 24;
+		// 两天清理一次下线的consumer ids
+		final long initialDelay = UtilAll.computTwodaysAfterMorningTimeMillis() - System.currentTimeMillis();
+		final long period = 1000 * 60 * 60 * 24 * 2; // two days
 		this.consumerClientIdsScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 			@Override
 			public void run() {
