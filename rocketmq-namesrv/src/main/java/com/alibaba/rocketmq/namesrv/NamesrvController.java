@@ -1,17 +1,14 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.alibaba.rocketmq.namesrv;
 
@@ -41,8 +38,7 @@ import com.alibaba.rocketmq.remoting.netty.NettyServerConfig;
  * @since 2013-7-5
  */
 public class NamesrvController {
-	private static final Logger log = LoggerFactory
-			.getLogger(LoggerName.NamesrvLoggerName);
+	private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 	// Name Server配置
 	private final NamesrvConfig namesrvConfig;
 	// 通信层配置
@@ -56,8 +52,7 @@ public class NamesrvController {
 
 	// 定时线程
 	private final ScheduledExecutorService scheduledExecutorService = Executors
-			.newSingleThreadScheduledExecutor(new ThreadFactoryImpl(
-					"NSScheduledThread"));
+			.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("NSScheduledThread"));
 
 	/**
 	 * 核心数据结构
@@ -65,8 +60,7 @@ public class NamesrvController {
 	private final KVConfigManager kvConfigManager;
 	private final RouteInfoManager routeInfoManager;
 
-	public NamesrvController(NamesrvConfig namesrvConfig,
-			NettyServerConfig nettyServerConfig) {
+	public NamesrvController(NamesrvConfig namesrvConfig, NettyServerConfig nettyServerConfig) {
 		this.namesrvConfig = namesrvConfig;
 		this.nettyServerConfig = nettyServerConfig;
 		this.kvConfigManager = new KVConfigManager(this);
@@ -79,12 +73,10 @@ public class NamesrvController {
 		this.kvConfigManager.load();
 
 		// 初始化通信层
-		this.remotingServer = new NettyRemotingServer(this.nettyServerConfig,
-				this.brokerHousekeepingService);
+		this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.brokerHousekeepingService);
 
 		// 初始化线程池
-		this.remotingExecutor = Executors.newFixedThreadPool(
-				nettyServerConfig.getServerWorkerThreads(),
+		this.remotingExecutor = Executors.newFixedThreadPool(nettyServerConfig.getServerWorkerThreads(),
 				new ThreadFactoryImpl("RemotingExecutorThread_"));
 
 		this.registerProcessor();
@@ -118,8 +110,7 @@ public class NamesrvController {
 	}
 
 	private void registerProcessor() {
-		this.remotingServer.registerDefaultProcessor(
-				new DefaultRequestProcessor(this), this.remotingExecutor);
+		this.remotingServer.registerDefaultProcessor(new DefaultRequestProcessor(this), this.remotingExecutor);
 	}
 
 	public void start() throws Exception {

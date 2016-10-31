@@ -1,17 +1,14 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.alibaba.rocketmq.namesrv;
 
@@ -52,8 +49,7 @@ public class NamesrvStartup {
 	public static CommandLine commandLine = null;
 
 	public static Options buildCommandlineOptions(final Options options) {
-		Option opt = new Option("c", "configFile", true,
-				"Name server config properties file");
+		Option opt = new Option("c", "configFile", true, "Name server config properties file");
 		opt.setRequired(false);
 		options.addOption(opt);
 
@@ -69,18 +65,15 @@ public class NamesrvStartup {
 	}
 
 	public static NamesrvController main0(String[] args) {
-		System.setProperty(RemotingCommand.RemotingVersionKey,
-				Integer.toString(MQVersion.CurrentVersion));
+		System.setProperty(RemotingCommand.RemotingVersionKey, Integer.toString(MQVersion.CurrentVersion));
 
 		// Socket发送缓冲区大小
-		if (null == System
-				.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
+		if (null == System.getProperty(NettySystemConfig.SystemPropertySocketSndbufSize)) {
 			NettySystemConfig.SocketSndbufSize = 2048;
 		}
 
 		// Socket接收缓冲区大小
-		if (null == System
-				.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
+		if (null == System.getProperty(NettySystemConfig.SystemPropertySocketRcvbufSize)) {
 			NettySystemConfig.SocketRcvbufSize = 1024;
 		}
 
@@ -90,8 +83,8 @@ public class NamesrvStartup {
 
 			// 解析命令行
 			Options options = ServerUtil.buildCommandlineOptions(new Options());
-			commandLine = ServerUtil.parseCmdLine("mqnamesrv", args,
-					buildCommandlineOptions(options), new PosixParser());
+			commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options),
+					new PosixParser());
 			if (null == commandLine) {
 				System.exit(-1);
 				return null;
@@ -104,14 +97,12 @@ public class NamesrvStartup {
 			if (commandLine.hasOption('c')) {
 				String file = commandLine.getOptionValue('c');
 				if (file != null) {
-					InputStream in = new BufferedInputStream(
-							new FileInputStream(file));
+					InputStream in = new BufferedInputStream(new FileInputStream(file));
 					properties = new Properties();
 					properties.load(in);
 					MixAll.properties2Object(properties, namesrvConfig);
 					MixAll.properties2Object(properties, nettyServerConfig);
-					System.out.println("load config properties file OK, "
-							+ file);
+					System.out.println("load config properties file OK, " + file);
 					in.close();
 				}
 			}
@@ -123,36 +114,28 @@ public class NamesrvStartup {
 				System.exit(0);
 			}
 
-			MixAll.properties2Object(
-					ServerUtil.commandLine2Properties(commandLine),
-					namesrvConfig);
+			MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
 			if (null == namesrvConfig.getRocketmqHome()) {
-				System.out
-						.println("Please set the "
-								+ MixAll.ROCKETMQ_HOME_ENV
-								+ " variable in your environment to match the location of the RocketMQ installation");
+				System.out.println("Please set the " + MixAll.ROCKETMQ_HOME_ENV
+						+ " variable in your environment to match the location of the RocketMQ installation");
 				System.exit(-2);
 			}
 
 			// 初始化Logback
-			LoggerContext lc = (LoggerContext) LoggerFactory
-					.getILoggerFactory();
+			LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
 			JoranConfigurator configurator = new JoranConfigurator();
 			configurator.setContext(lc);
 			lc.reset();
-			configurator.doConfigure(namesrvConfig.getRocketmqHome()
-					+ "/conf/logback_namesrv.xml");
-			final Logger log = LoggerFactory
-					.getLogger(LoggerName.NamesrvLoggerName);
+			configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
+			final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
 			// 打印服务器配置参数
 			MixAll.printObjectProperties(log, namesrvConfig);
 			MixAll.printObjectProperties(log, nettyServerConfig);
 
 			// 初始化服务控制对象
-			final NamesrvController controller = new NamesrvController(
-					namesrvConfig, nettyServerConfig);
+			final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
 			boolean initResult = controller.initialize();
 			if (!initResult) {
 				controller.shutdown();
@@ -166,16 +149,13 @@ public class NamesrvStartup {
 				@Override
 				public void run() {
 					synchronized (this) {
-						log.info("shutdown hook was invoked, "
-								+ this.shutdownTimes.incrementAndGet());
+						log.info("shutdown hook was invoked, " + this.shutdownTimes.incrementAndGet());
 						if (!this.hasShutdown) {
 							this.hasShutdown = true;
 							long begineTime = System.currentTimeMillis();
 							controller.shutdown();
-							long consumingTimeTotal = System
-									.currentTimeMillis() - begineTime;
-							log.info("shutdown hook over, consuming time total(ms): "
-									+ consumingTimeTotal);
+							long consumingTimeTotal = System.currentTimeMillis() - begineTime;
+							log.info("shutdown hook over, consuming time total(ms): " + consumingTimeTotal);
 						}
 					}
 				}

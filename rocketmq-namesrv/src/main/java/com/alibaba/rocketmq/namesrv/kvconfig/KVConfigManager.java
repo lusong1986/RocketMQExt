@@ -1,17 +1,14 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.alibaba.rocketmq.namesrv.kvconfig;
 
@@ -38,8 +35,7 @@ import com.alibaba.rocketmq.namesrv.NamesrvController;
  * @since 2013-7-1
  */
 public class KVConfigManager {
-	private static final Logger log = LoggerFactory
-			.getLogger(LoggerName.NamesrvLoggerName);
+	private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
 	private final NamesrvController namesrvController;
 
@@ -51,26 +47,22 @@ public class KVConfigManager {
 	}
 
 	public void load() {
-		String content = MixAll.file2String(this.namesrvController
-				.getNamesrvConfig().getKvConfigPath());
+		String content = MixAll.file2String(this.namesrvController.getNamesrvConfig().getKvConfigPath());
 		if (content != null) {
-			KVConfigSerializeWrapper kvConfigSerializeWrapper = KVConfigSerializeWrapper
-					.fromJson(content, KVConfigSerializeWrapper.class);
+			KVConfigSerializeWrapper kvConfigSerializeWrapper = KVConfigSerializeWrapper.fromJson(content,
+					KVConfigSerializeWrapper.class);
 			if (null != kvConfigSerializeWrapper) {
-				this.configTable.putAll(kvConfigSerializeWrapper
-						.getConfigTable());
+				this.configTable.putAll(kvConfigSerializeWrapper.getConfigTable());
 				log.info("load KV config table OK");
 			}
 		}
 	}
 
-	public void putKVConfig(final String namespace, final String key,
-			final String value) {
+	public void putKVConfig(final String namespace, final String key, final String value) {
 		try {
 			this.lock.writeLock().lockInterruptibly();
 			try {
-				HashMap<String, String> kvTable = this.configTable
-						.get(namespace);
+				HashMap<String, String> kvTable = this.configTable.get(namespace);
 				if (null == kvTable) {
 					kvTable = new HashMap<String, String>();
 					this.configTable.put(namespace, kvTable);
@@ -79,12 +71,10 @@ public class KVConfigManager {
 
 				final String prev = kvTable.put(key, value);
 				if (null != prev) {
-					log.info(
-							"putKVConfig update config item, Namespace: {} Key: {} Value: {}", //
+					log.info("putKVConfig update config item, Namespace: {} Key: {} Value: {}", //
 							namespace, key, value);
 				} else {
-					log.info(
-							"putKVConfig create new config item, Namespace: {} Key: {} Value: {}", //
+					log.info("putKVConfig create new config item, Namespace: {} Key: {} Value: {}", //
 							namespace, key, value);
 				}
 			} finally {
@@ -101,12 +91,10 @@ public class KVConfigManager {
 		try {
 			this.lock.writeLock().lockInterruptibly();
 			try {
-				HashMap<String, String> kvTable = this.configTable
-						.get(namespace);
+				HashMap<String, String> kvTable = this.configTable.get(namespace);
 				if (null != kvTable) {
 					String value = kvTable.remove(key);
-					log.info(
-							"deleteKVConfig delete a config item, Namespace: {} Key: {} Value: {}", //
+					log.info("deleteKVConfig delete a config item, Namespace: {} Key: {} Value: {}", //
 							namespace, key, value);
 				}
 			} finally {
@@ -123,8 +111,7 @@ public class KVConfigManager {
 		try {
 			this.lock.readLock().lockInterruptibly();
 			try {
-				HashMap<String, String> kvTable = this.configTable
-						.get(namespace);
+				HashMap<String, String> kvTable = this.configTable.get(namespace);
 				if (null != kvTable) {
 					KVTable table = new KVTable();
 					table.setTable(kvTable);
@@ -144,8 +131,7 @@ public class KVConfigManager {
 		try {
 			this.lock.readLock().lockInterruptibly();
 			try {
-				HashMap<String, String> kvTable = this.configTable
-						.get(namespace);
+				HashMap<String, String> kvTable = this.configTable.get(namespace);
 				if (null != kvTable) {
 					return kvTable.get(key);
 				}
@@ -163,8 +149,7 @@ public class KVConfigManager {
 		try {
 			this.lock.readLock().lockInterruptibly();
 			try {
-				HashMap<String, String> kvTable = this.configTable
-						.get(namespace);
+				HashMap<String, String> kvTable = this.configTable.get(namespace);
 				if (null != kvTable) {
 					StringBuilder sb = new StringBuilder();
 					String splitor = "";
@@ -190,19 +175,15 @@ public class KVConfigManager {
 		try {
 			this.lock.writeLock().lockInterruptibly();
 			try {
-				HashMap<String, String> kvTable = this.configTable
-						.get(namespace);
+				HashMap<String, String> kvTable = this.configTable.get(namespace);
 				if (null != kvTable) {
-					HashMap<String, String> cloneKvTable = new HashMap<String, String>(
-							kvTable);
-					for (Map.Entry<String, String> entry : cloneKvTable
-							.entrySet()) {
+					HashMap<String, String> cloneKvTable = new HashMap<String, String>(kvTable);
+					for (Map.Entry<String, String> entry : cloneKvTable.entrySet()) {
 						if (value.equals(entry.getValue())) {
 							kvTable.remove(entry.getKey());
 						}
 					}
-					log.info(
-							"deleteIpsByProjectGroup delete a config item, Namespace: {} Key: {} Value: {}", //
+					log.info("deleteIpsByProjectGroup delete a config item, Namespace: {} Key: {} Value: {}", //
 							namespace, value);
 				}
 			} finally {
@@ -225,13 +206,11 @@ public class KVConfigManager {
 				String content = kvConfigSerializeWrapper.toJson();
 
 				if (null != content) {
-					MixAll.string2File(content, this.namesrvController
-							.getNamesrvConfig().getKvConfigPath());
+					MixAll.string2File(content, this.namesrvController.getNamesrvConfig().getKvConfigPath());
 				}
 			} catch (IOException e) {
-				log.error("persist kvconfig Exception, "
-						+ this.namesrvController.getNamesrvConfig()
-								.getKvConfigPath(), e);
+				log.error("persist kvconfig Exception, " + this.namesrvController.getNamesrvConfig().getKvConfigPath(),
+						e);
 			} finally {
 				this.lock.readLock().unlock();
 			}
@@ -249,16 +228,13 @@ public class KVConfigManager {
 
 				{
 					log.info("configTable SIZE: {}", this.configTable.size());
-					Iterator<Entry<String, HashMap<String, String>>> it = this.configTable
-							.entrySet().iterator();
+					Iterator<Entry<String, HashMap<String, String>>> it = this.configTable.entrySet().iterator();
 					while (it.hasNext()) {
 						Entry<String, HashMap<String, String>> next = it.next();
-						Iterator<Entry<String, String>> itSub = next.getValue()
-								.entrySet().iterator();
+						Iterator<Entry<String, String>> itSub = next.getValue().entrySet().iterator();
 						while (itSub.hasNext()) {
 							Entry<String, String> nextSub = itSub.next();
-							log.info("configTable NS: {} Key: {} Value: {}",
-									next.getKey(), nextSub.getKey(),
+							log.info("configTable NS: {} Key: {} Value: {}", next.getKey(), nextSub.getKey(),
 									nextSub.getValue());
 						}
 					}

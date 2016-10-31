@@ -1,17 +1,14 @@
 /**
  * Copyright (C) 2010-2013 Alibaba Group Holding Limited
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.alibaba.rocketmq.namesrv.processor;
 
@@ -59,8 +56,7 @@ import com.alibaba.rocketmq.remoting.protocol.RemotingCommand;
  * @since 2013-7-5
  */
 public class DefaultRequestProcessor implements NettyRequestProcessor {
-	private static final Logger log = LoggerFactory
-			.getLogger(LoggerName.NamesrvLoggerName);
+	private static final Logger log = LoggerFactory.getLogger(LoggerName.NamesrvLoggerName);
 
 	private final NamesrvController namesrvController;
 
@@ -69,8 +65,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 	}
 
 	@Override
-	public RemotingCommand processRequest(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
+	public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
 		if (log.isDebugEnabled()) {
 			log.debug("receive request, {} {} {}",//
 					request.getCode(), //
@@ -86,8 +82,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		case RequestCode.DELETE_KV_CONFIG:
 			return this.deleteKVConfig(ctx, request);
 		case RequestCode.REGISTER_BROKER:
-			Version brokerVersion = MQVersion.value2Version(request
-					.getVersion());
+			Version brokerVersion = MQVersion.value2Version(request.getVersion());
 			// 新版本Broker，支持Filter Server
 			if (brokerVersion.ordinal() >= MQVersion.Version.V3_0_11.ordinal()) {
 				return this.registerBrokerWithFilterServer(ctx, request);
@@ -130,46 +125,39 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		return null;
 	}
 
-	public RemotingCommand registerBrokerWithFilterServer(
-			ChannelHandlerContext ctx, RemotingCommand request)
+	public RemotingCommand registerBrokerWithFilterServer(ChannelHandlerContext ctx, RemotingCommand request)
 			throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(RegisterBrokerResponseHeader.class);
-		final RegisterBrokerResponseHeader responseHeader = (RegisterBrokerResponseHeader) response
-				.readCustomHeader();
+		final RemotingCommand response = RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
+		final RegisterBrokerResponseHeader responseHeader = (RegisterBrokerResponseHeader) response.readCustomHeader();
 		final RegisterBrokerRequestHeader requestHeader = (RegisterBrokerRequestHeader) request
 				.decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
 
 		RegisterBrokerBody registerBrokerBody = new RegisterBrokerBody();
 
 		if (request.getBody() != null) {
-			registerBrokerBody = RegisterBrokerBody.decode(request.getBody(),
-					RegisterBrokerBody.class);
+			registerBrokerBody = RegisterBrokerBody.decode(request.getBody(), RegisterBrokerBody.class);
 		} else {
-			registerBrokerBody.getTopicConfigSerializeWrapper()
-					.getDataVersion().setCounter(new AtomicLong(0));
-			registerBrokerBody.getTopicConfigSerializeWrapper()
-					.getDataVersion().setTimestatmp(0);
+			registerBrokerBody.getTopicConfigSerializeWrapper().getDataVersion().setCounter(new AtomicLong(0));
+			registerBrokerBody.getTopicConfigSerializeWrapper().getDataVersion().setTimestatmp(0);
 		}
 
-		RegisterBrokerResult result = this.namesrvController
-				.getRouteInfoManager().registerBroker(//
-						requestHeader.getClusterName(), // 1
-						requestHeader.getBrokerAddr(), // 2
-						requestHeader.getBrokerName(), // 3
-						requestHeader.getBrokerId(), // 4
-						requestHeader.getHaServerAddr(),// 5
-						registerBrokerBody.getTopicConfigSerializeWrapper(), // 6
-						registerBrokerBody.getFilterServerList(),//
-						ctx.channel()// 7
+		RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(//
+				requestHeader.getClusterName(), // 1
+				requestHeader.getBrokerAddr(), // 2
+				requestHeader.getBrokerName(), // 3
+				requestHeader.getBrokerId(), // 4
+				requestHeader.getHaServerAddr(),// 5
+				registerBrokerBody.getTopicConfigSerializeWrapper(), // 6
+				registerBrokerBody.getFilterServerList(),//
+				ctx.channel()// 7
 				);
 
 		responseHeader.setHaServerAddr(result.getHaServerAddr());
 		responseHeader.setMasterAddr(result.getMasterAddr());
 
 		// 获取顺序消息 topic 列表
-		byte[] jsonValue = this.namesrvController.getKvConfigManager()
-				.getKVListByNamespace(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG);
+		byte[] jsonValue = this.namesrvController.getKvConfigManager().getKVListByNamespace(
+				NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG);
 		response.setBody(jsonValue);
 
 		response.setCode(ResponseCode.SUCCESS);
@@ -180,16 +168,14 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 	/**
 	 * 获取一个Namespace下的所有kv
 	 */
-	private RemotingCommand getKVListByNamespace(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	private RemotingCommand getKVListByNamespace(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		final GetKVListByNamespaceRequestHeader requestHeader = (GetKVListByNamespaceRequestHeader) request
 				.decodeCommandCustomHeader(GetKVListByNamespaceRequestHeader.class);
 
-		byte[] jsonValue = this.namesrvController.getKvConfigManager()
-				.getKVListByNamespace(//
-						requestHeader.getNamespace());
+		byte[] jsonValue = this.namesrvController.getKvConfigManager().getKVListByNamespace(//
+				requestHeader.getNamespace());
 		if (null != jsonValue) {
 			response.setBody(jsonValue);
 			response.setCode(ResponseCode.SUCCESS);
@@ -198,20 +184,17 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		}
 
 		response.setCode(ResponseCode.QUERY_NOT_FOUND);
-		response.setRemark("No config item, Namespace: "
-				+ requestHeader.getNamespace());
+		response.setRemark("No config item, Namespace: " + requestHeader.getNamespace());
 		return response;
 	}
 
-	private RemotingCommand deleteTopicInNamesrv(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	private RemotingCommand deleteTopicInNamesrv(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		final DeleteTopicInNamesrvRequestHeader requestHeader = (DeleteTopicInNamesrvRequestHeader) request
 				.decodeCommandCustomHeader(DeleteTopicInNamesrvRequestHeader.class);
 
-		this.namesrvController.getRouteInfoManager().deleteTopic(
-				requestHeader.getTopic());
+		this.namesrvController.getRouteInfoManager().deleteTopic(requestHeader.getTopic());
 
 		response.setCode(ResponseCode.SUCCESS);
 		response.setRemark(null);
@@ -225,13 +208,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 	 * @param request
 	 * @return
 	 */
-	private RemotingCommand getAllTopicListFromNameserver(
-			ChannelHandlerContext ctx, RemotingCommand request) {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	private RemotingCommand getAllTopicListFromNameserver(ChannelHandlerContext ctx, RemotingCommand request) {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-		byte[] body = this.namesrvController.getRouteInfoManager()
-				.getAllTopicList();
+		byte[] body = this.namesrvController.getRouteInfoManager().getAllTopicList();
 
 		response.setBody(body);
 		response.setCode(ResponseCode.SUCCESS);
@@ -239,8 +219,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		return response;
 	}
 
-	private RemotingCommand wipeWritePermOfBroker(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
+	private RemotingCommand wipeWritePermOfBroker(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
 		final RemotingCommand response = RemotingCommand
 				.createResponseCommand(WipeWritePermOfBrokerResponseHeader.class);
 		final WipeWritePermOfBrokerResponseHeader responseHeader = (WipeWritePermOfBrokerResponseHeader) response
@@ -248,8 +228,8 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		final WipeWritePermOfBrokerRequestHeader requestHeader = (WipeWritePermOfBrokerRequestHeader) request
 				.decodeCommandCustomHeader(WipeWritePermOfBrokerRequestHeader.class);
 
-		int wipeTopicCnt = this.namesrvController.getRouteInfoManager()
-				.wipeWritePermOfBrokerByLock(requestHeader.getBrokerName());
+		int wipeTopicCnt = this.namesrvController.getRouteInfoManager().wipeWritePermOfBrokerByLock(
+				requestHeader.getBrokerName());
 
 		log.info("wipe write perm of broker[{}], client: {}, {}", //
 				requestHeader.getBrokerName(), //
@@ -262,13 +242,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		return response;
 	}
 
-	private RemotingCommand getBrokerClusterInfo(ChannelHandlerContext ctx,
-			RemotingCommand request) {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	private RemotingCommand getBrokerClusterInfo(ChannelHandlerContext ctx, RemotingCommand request) {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-		byte[] content = this.namesrvController.getRouteInfoManager()
-				.getAllClusterInfo();
+		byte[] content = this.namesrvController.getRouteInfoManager().getAllClusterInfo();
 		response.setBody(content);
 
 		response.setCode(ResponseCode.SUCCESS);
@@ -276,21 +253,18 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		return response;
 	}
 
-	public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	public RemotingCommand getRouteInfoByTopic(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		final GetRouteInfoRequestHeader requestHeader = (GetRouteInfoRequestHeader) request
 				.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
-		TopicRouteData topicRouteData = this.namesrvController
-				.getRouteInfoManager().pickupTopicRouteData(
-						requestHeader.getTopic());
+		TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(
+				requestHeader.getTopic());
 
 		if (topicRouteData != null) {
-			String orderTopicConf = this.namesrvController.getKvConfigManager()
-					.getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
-							requestHeader.getTopic());
+			String orderTopicConf = this.namesrvController.getKvConfigManager().getKVConfig(
+					NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG, requestHeader.getTopic());
 			topicRouteData.setOrderTopicConf(orderTopicConf);
 
 			byte[] content = topicRouteData.encode();
@@ -301,16 +275,14 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		}
 
 		response.setCode(ResponseCode.TOPIC_NOT_EXIST);
-		response.setRemark("No topic route info in name server for the topic: "
-				+ requestHeader.getTopic()
+		response.setRemark("No topic route info in name server for the topic: " + requestHeader.getTopic()
 				+ FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL));
 		return response;
 	}
 
-	public RemotingCommand putKVConfig(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	public RemotingCommand putKVConfig(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		final PutKVConfigRequestHeader requestHeader = (PutKVConfigRequestHeader) request
 				.decodeCommandCustomHeader(PutKVConfigRequestHeader.class);
 
@@ -325,12 +297,10 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		return response;
 	}
 
-	public RemotingCommand getKVConfig(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(GetKVConfigResponseHeader.class);
-		final GetKVConfigResponseHeader responseHeader = (GetKVConfigResponseHeader) response
-				.readCustomHeader();
+	public RemotingCommand getKVConfig(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(GetKVConfigResponseHeader.class);
+		final GetKVConfigResponseHeader responseHeader = (GetKVConfigResponseHeader) response.readCustomHeader();
 		final GetKVConfigRequestHeader requestHeader = (GetKVConfigRequestHeader) request
 				.decodeCommandCustomHeader(GetKVConfigRequestHeader.class);
 
@@ -347,16 +317,14 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		}
 
 		response.setCode(ResponseCode.QUERY_NOT_FOUND);
-		response.setRemark("No config item, Namespace: "
-				+ requestHeader.getNamespace() + " Key: "
+		response.setRemark("No config item, Namespace: " + requestHeader.getNamespace() + " Key: "
 				+ requestHeader.getKey());
 		return response;
 	}
 
-	public RemotingCommand deleteKVConfig(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	public RemotingCommand deleteKVConfig(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		final DeleteKVConfigRequestHeader requestHeader = (DeleteKVConfigRequestHeader) request
 				.decodeCommandCustomHeader(DeleteKVConfigRequestHeader.class);
 
@@ -370,53 +338,49 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		return response;
 	}
 
-	public RemotingCommand registerBroker(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(RegisterBrokerResponseHeader.class);
-		final RegisterBrokerResponseHeader responseHeader = (RegisterBrokerResponseHeader) response
-				.readCustomHeader();
+	public RemotingCommand registerBroker(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(RegisterBrokerResponseHeader.class);
+		final RegisterBrokerResponseHeader responseHeader = (RegisterBrokerResponseHeader) response.readCustomHeader();
 		final RegisterBrokerRequestHeader requestHeader = (RegisterBrokerRequestHeader) request
 				.decodeCommandCustomHeader(RegisterBrokerRequestHeader.class);
 
 		TopicConfigSerializeWrapper topicConfigWrapper = null;
 		if (request.getBody() != null) {
-			topicConfigWrapper = TopicConfigSerializeWrapper.decode(
-					request.getBody(), TopicConfigSerializeWrapper.class);
+			topicConfigWrapper = TopicConfigSerializeWrapper.decode(request.getBody(),
+					TopicConfigSerializeWrapper.class);
 		} else {
 			topicConfigWrapper = new TopicConfigSerializeWrapper();
 			topicConfigWrapper.getDataVersion().setCounter(new AtomicLong(0));
 			topicConfigWrapper.getDataVersion().setTimestatmp(0);
 		}
 
-		RegisterBrokerResult result = this.namesrvController
-				.getRouteInfoManager().registerBroker(//
-						requestHeader.getClusterName(), // 1
-						requestHeader.getBrokerAddr(), // 2
-						requestHeader.getBrokerName(), // 3
-						requestHeader.getBrokerId(), // 4
-						requestHeader.getHaServerAddr(),// 5
-						topicConfigWrapper, // 6
-						null,//
-						ctx.channel()// 7
+		RegisterBrokerResult result = this.namesrvController.getRouteInfoManager().registerBroker(//
+				requestHeader.getClusterName(), // 1
+				requestHeader.getBrokerAddr(), // 2
+				requestHeader.getBrokerName(), // 3
+				requestHeader.getBrokerId(), // 4
+				requestHeader.getHaServerAddr(),// 5
+				topicConfigWrapper, // 6
+				null,//
+				ctx.channel()// 7
 				);
 
 		responseHeader.setHaServerAddr(result.getHaServerAddr());
 		responseHeader.setMasterAddr(result.getMasterAddr());
 
 		// 获取顺序消息 topic 列表
-		byte[] jsonValue = this.namesrvController.getKvConfigManager()
-				.getKVListByNamespace(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG);
+		byte[] jsonValue = this.namesrvController.getKvConfigManager().getKVListByNamespace(
+				NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG);
 		response.setBody(jsonValue);
 		response.setCode(ResponseCode.SUCCESS);
 		response.setRemark(null);
 		return response;
 	}
 
-	public RemotingCommand unregisterBroker(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	public RemotingCommand unregisterBroker(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		final UnRegisterBrokerRequestHeader requestHeader = (UnRegisterBrokerRequestHeader) request
 				.decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
 
@@ -431,19 +395,16 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		return response;
 	}
 
-	public RemotingCommand getKVConfigByValue(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(GetKVConfigResponseHeader.class);
-		final GetKVConfigResponseHeader responseHeader = (GetKVConfigResponseHeader) response
-				.readCustomHeader();
+	public RemotingCommand getKVConfigByValue(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(GetKVConfigResponseHeader.class);
+		final GetKVConfigResponseHeader responseHeader = (GetKVConfigResponseHeader) response.readCustomHeader();
 		final GetKVConfigRequestHeader requestHeader = (GetKVConfigRequestHeader) request
 				.decodeCommandCustomHeader(GetKVConfigRequestHeader.class);
 
-		String value = this.namesrvController.getKvConfigManager()
-				.getKVConfigByValue(//
-						requestHeader.getNamespace(),//
-						requestHeader.getKey()//
+		String value = this.namesrvController.getKvConfigManager().getKVConfigByValue(//
+				requestHeader.getNamespace(),//
+				requestHeader.getKey()//
 				);
 
 		if (value != null) {
@@ -454,16 +415,14 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		}
 
 		response.setCode(ResponseCode.QUERY_NOT_FOUND);
-		response.setRemark("No config item, Namespace: "
-				+ requestHeader.getNamespace() + " Key: "
+		response.setRemark("No config item, Namespace: " + requestHeader.getNamespace() + " Key: "
 				+ requestHeader.getKey());
 		return response;
 	}
 
-	public RemotingCommand deleteKVConfigByValue(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	public RemotingCommand deleteKVConfigByValue(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		final DeleteKVConfigRequestHeader requestHeader = (DeleteKVConfigRequestHeader) request
 				.decodeCommandCustomHeader(DeleteKVConfigRequestHeader.class);
 
@@ -484,15 +443,13 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 	 * @param request
 	 * @return
 	 */
-	private RemotingCommand getTopicsByCluster(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	private RemotingCommand getTopicsByCluster(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		final GetTopicsByClusterRequestHeader requestHeader = (GetTopicsByClusterRequestHeader) request
 				.decodeCommandCustomHeader(GetTopicsByClusterRequestHeader.class);
 
-		byte[] body = this.namesrvController.getRouteInfoManager()
-				.getTopicsByCluster(requestHeader.getCluster());
+		byte[] body = this.namesrvController.getRouteInfoManager().getTopicsByCluster(requestHeader.getCluster());
 
 		response.setBody(body);
 		response.setCode(ResponseCode.SUCCESS);
@@ -508,13 +465,11 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 	 * @return
 	 * @throws RemotingCommandException
 	 */
-	private RemotingCommand getSystemTopicListFromNs(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	private RemotingCommand getSystemTopicListFromNs(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-		byte[] body = this.namesrvController.getRouteInfoManager()
-				.getSystemTopicList();
+		byte[] body = this.namesrvController.getRouteInfoManager().getSystemTopicList();
 
 		response.setBody(body);
 		response.setCode(ResponseCode.SUCCESS);
@@ -530,13 +485,11 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 	 * @return
 	 * @throws RemotingCommandException
 	 */
-	private RemotingCommand getUnitTopicList(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	private RemotingCommand getUnitTopicList(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-		byte[] body = this.namesrvController.getRouteInfoManager()
-				.getUnitTopics();
+		byte[] body = this.namesrvController.getRouteInfoManager().getUnitTopics();
 
 		response.setBody(body);
 		response.setCode(ResponseCode.SUCCESS);
@@ -552,13 +505,11 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 	 * @return
 	 * @throws RemotingCommandException
 	 */
-	private RemotingCommand getHasUnitSubTopicList(ChannelHandlerContext ctx,
-			RemotingCommand request) throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+	private RemotingCommand getHasUnitSubTopicList(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-		byte[] body = this.namesrvController.getRouteInfoManager()
-				.getHasUnitSubTopicList();
+		byte[] body = this.namesrvController.getRouteInfoManager().getHasUnitSubTopicList();
 
 		response.setBody(body);
 		response.setCode(ResponseCode.SUCCESS);
@@ -574,14 +525,11 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 	 * @return
 	 * @throws RemotingCommandException
 	 */
-	private RemotingCommand getHasUnitSubUnUnitTopicList(
-			ChannelHandlerContext ctx, RemotingCommand request)
+	private RemotingCommand getHasUnitSubUnUnitTopicList(ChannelHandlerContext ctx, RemotingCommand request)
 			throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(null);
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-		byte[] body = this.namesrvController.getRouteInfoManager()
-				.getHasUnitSubUnUnitTopicList();
+		byte[] body = this.namesrvController.getRouteInfoManager().getHasUnitSubUnUnitTopicList();
 
 		response.setBody(body);
 		response.setCode(ResponseCode.SUCCESS);
