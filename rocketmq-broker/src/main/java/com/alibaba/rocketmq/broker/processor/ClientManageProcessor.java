@@ -452,7 +452,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		log.info(">>>>>>>>>>>offlineConsumerClientIdsByGroup :" + requestHeader.getClientIds() + " for consumer group:"
 				+ requestHeader.getConsumerGroup());
 		String ignoreConsumerClientIds = ignoreConsumerClientIdsTable.get(requestHeader.getConsumerGroup());
-		if (null == ignoreConsumerClientIds) {
+		if (StringUtils.isBlank(ignoreConsumerClientIds)) {
 			ignoreConsumerClientIds = requestHeader.getClientIds();
 		} else {
 			if (!ignoreConsumerClientIds.contains(requestHeader.getClientIds())
