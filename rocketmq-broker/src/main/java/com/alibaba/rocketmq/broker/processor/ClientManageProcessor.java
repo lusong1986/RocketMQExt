@@ -17,6 +17,7 @@ import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -273,11 +274,11 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 			final String filterConsumerClientIds = ignoreConsumerClientIdsTable.get(requestHeader.getConsumerGroup());
 
-			filterOfflineClientIds(clientIds, filterConsumerClientIds, requestHeader.getConsumerGroup());
-
-			if (!clientIds.isEmpty()) {
+			final List<String> newClientIds = filterOfflineClientIds(clientIds, filterConsumerClientIds,
+					requestHeader.getConsumerGroup());
+			if (!newClientIds.isEmpty()) {
 				GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
-				body.setConsumerIdList(clientIds);
+				body.setConsumerIdList(newClientIds);
 				response.setBody(body.encode());
 				response.setCode(ResponseCode.SUCCESS);
 				response.setRemark(null);
@@ -301,32 +302,42 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 	 * 
 	 * @param clientIds
 	 * @param filterConsumerClientIds
+	 * @param consumerGroup
 	 */
-	private void filterOfflineClientIds(final List<String> clientIds, final String filterConsumerClientIds,
-			String consumerGroup) {
-		if (StringUtils.isNotBlank(filterConsumerClientIds)) {
-			try {
-				String[] filterConsumerClientIdArray = filterConsumerClientIds.split(",");
+	private List<String> filterOfflineClientIds(final List<String> clientIds, final String filterConsumerClientIds,
+			final String consumerGroup) {
+		if (StringUtils.isBlank(filterConsumerClientIds)) {
+			return clientIds;
+		}
 
-				final Iterator<String> clientIdsIterator = clientIds.iterator();
-				while (clientIdsIterator.hasNext()) {
-					final String clientId = clientIdsIterator.next();
-					final String clientHostIp = clientId.substring(0, clientId.indexOf("@"));
-					for (String filterClientId : filterConsumerClientIdArray) {
-						if (clientId.equals(filterClientId) || clientHostIp.equals(filterClientId)) {
-							clientIdsIterator.remove();
-						}
+		final List<String> newClientIds = new ArrayList<String>();
+		try {
+			String[] filterConsumerClientIdArray = filterConsumerClientIds.split(",");
+
+			final Iterator<String> clientIdsIterator = clientIds.iterator();
+			while (clientIdsIterator.hasNext()) {
+				final String clientId = clientIdsIterator.next();
+				final String clientHostIp = clientId.substring(0, clientId.indexOf("@"));
+				for (String filterClientId : filterConsumerClientIdArray) {
+					if (clientId.equals(filterClientId) || clientHostIp.equals(filterClientId)) {
+						// log.info(">>>>>>>>>>>>>removed clientId>>>>>>" + clientId + " for consumer group:"
+						// + consumerGroup);
+					} else {
+						newClientIds.add(clientId);
 					}
 				}
-			} catch (Exception e) {
-				log.warn("filterOfflineClientIds exception:" + e.getMessage() + ",clientIds:" + clientIds);
 			}
-
-			if (new Random().nextInt(50) == 0) {
-				log.info(">>>>>>>>>>>after filtering offline clients, consumer clientIds:" + clientIds
-						+ " for consumer group:" + consumerGroup);
-			}
+		} catch (Exception e) {
+			log.warn("filterOfflineClientIds exception:" + e.getMessage() + ",clientIds:" + clientIds
+					+ ",filterConsumerClientIds:" + filterConsumerClientIds, e);
 		}
+
+		if (new Random().nextInt(50) == 0) {
+			log.info(">>>>>>>>>>>after filtering offline clients, consumer clientIds:" + clientIds
+					+ " for consumer group:" + consumerGroup);
+		}
+
+		return newClientIds;
 	}
 
 	public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request)
