@@ -95,6 +95,7 @@ import com.alibaba.rocketmq.common.protocol.header.GetQueuesByConsumerAddressReq
 import com.alibaba.rocketmq.common.protocol.header.GetTopicStatsInfoRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetTopicsByClusterRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.OfflineConsumerClientIdsByGroupRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.OnlineConsumerClientIdsByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.PullMessageResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumeTimeSpanRequestHeader;
@@ -631,6 +632,74 @@ public class MQClientAPIImpl {
 		throw new MQBrokerException(response.getCode(), response.getRemark());
 	}
 
+	public boolean offlineConsumerClientIdsByGroup(final String addr, final String consumerGroup,
+			final String clientIds, final long timeoutMillis) throws RemotingConnectException,
+			RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+
+		final OfflineConsumerClientIdsByGroupRequestHeader requestHeader = new OfflineConsumerClientIdsByGroupRequestHeader();
+		requestHeader.setClientIds(clientIds);
+		requestHeader.setConsumerGroup(consumerGroup);
+
+		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.OFFLINE_CONSUMER_IDS_BY_GROUP,
+				requestHeader);
+
+		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+		switch (response.getCode()) {
+		case ResponseCode.SUCCESS: {
+			return true;
+		}
+		default:
+			break;
+		}
+
+		throw new MQBrokerException(response.getCode(), response.getRemark());
+	}
+
+	public boolean onlineConsumerClientIdsByGroup(final String addr, final String consumerGroup, final String clientIp,
+			final long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException,
+			RemotingTimeoutException, InterruptedException, MQBrokerException {
+
+		final OnlineConsumerClientIdsByGroupRequestHeader requestHeader = new OnlineConsumerClientIdsByGroupRequestHeader();
+		requestHeader.setClientIp(clientIp);
+		requestHeader.setConsumerGroup(consumerGroup);
+
+		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.ONLINE_CONSUMER_IDS_BY_GROUP,
+				requestHeader);
+
+		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+		switch (response.getCode()) {
+		case ResponseCode.SUCCESS: {
+			return true;
+		}
+		default:
+			break;
+		}
+
+		throw new MQBrokerException(response.getCode(), response.getRemark());
+	}
+
+	public String getQueuesByConsumerAddress(final String addr, final String consumerAddress, final long timeoutMillis)
+			throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
+			InterruptedException, MQBrokerException, UnsupportedEncodingException {
+
+		final GetQueuesByConsumerAddressRequestHeader requestHeader = new GetQueuesByConsumerAddressRequestHeader();
+		requestHeader.setConsumerAddress(consumerAddress);
+
+		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_QUEUES_BY_CONSUMER_ADDRESS,
+				requestHeader);
+
+		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+		switch (response.getCode()) {
+		case ResponseCode.SUCCESS: {
+			return new String(response.getBody(), "UTF-8");
+		}
+		default:
+			break;
+		}
+
+		throw new MQBrokerException(response.getCode(), response.getRemark());
+	}
+
 	public List<String> getConsumerIdListByGroup(//
 			final String addr, //
 			final String consumerGroup, //
@@ -899,32 +968,32 @@ public class MQClientAPIImpl {
 		this.remotingClient.invokeAsync(addr, request, timeoutMillis, invokeCallback);
 	}
 
-	// public boolean registerClient(final String addr, final HeartbeatData heartbeat, final long timeoutMillis)
-	// throws RemotingException, InterruptedException {
-	// if (!UtilAll.isBlank(projectGroupPrefix)) {
-	// Set<ConsumerData> consumerDatas = heartbeat.getConsumerDataSet();
-	// for (ConsumerData consumerData : consumerDatas) {
-	// consumerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(consumerData.getGroupName(),
-	// projectGroupPrefix));
-	// Set<SubscriptionData> subscriptionDatas = consumerData.getSubscriptionDataSet();
-	// for (SubscriptionData subscriptionData : subscriptionDatas) {
-	// subscriptionData.setTopic(VirtualEnvUtil.buildWithProjectGroup(subscriptionData.getTopic(),
-	// projectGroupPrefix));
-	// }
-	// }
-	// Set<ProducerData> producerDatas = heartbeat.getProducerDataSet();
-	// for (ProducerData producerData : producerDatas) {
-	// producerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(producerData.getGroupName(),
-	// projectGroupPrefix));
-	// }
-	// }
-	//
-	// RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
-	//
-	// request.setBody(heartbeat.encode());
-	// RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-	// return response.getCode() == ResponseCode.SUCCESS;
-	// }
+	public boolean registerClient(final String addr, final HeartbeatData heartbeat, final long timeoutMillis)
+			throws RemotingException, InterruptedException {
+		if (!UtilAll.isBlank(projectGroupPrefix)) {
+			Set<ConsumerData> consumerDatas = heartbeat.getConsumerDataSet();
+			for (ConsumerData consumerData : consumerDatas) {
+				consumerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(consumerData.getGroupName(),
+						projectGroupPrefix));
+				Set<SubscriptionData> subscriptionDatas = consumerData.getSubscriptionDataSet();
+				for (SubscriptionData subscriptionData : subscriptionDatas) {
+					subscriptionData.setTopic(VirtualEnvUtil.buildWithProjectGroup(subscriptionData.getTopic(),
+							projectGroupPrefix));
+				}
+			}
+			Set<ProducerData> producerDatas = heartbeat.getProducerDataSet();
+			for (ProducerData producerData : producerDatas) {
+				producerData.setGroupName(VirtualEnvUtil.buildWithProjectGroup(producerData.getGroupName(),
+						projectGroupPrefix));
+			}
+		}
+
+		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+
+		request.setBody(heartbeat.encode());
+		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+		return response.getCode() == ResponseCode.SUCCESS;
+	}
 
 	public void consumerSendMessageBack(//
 			final String addr, //
@@ -1166,55 +1235,10 @@ public class MQClientAPIImpl {
 				}
 
 				return pgroups;
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
+			} catch (Exception e) {
+				log.warn("getProducerList error:" + e.getMessage());
 			}
 
-		}
-		default:
-			break;
-		}
-
-		throw new MQBrokerException(response.getCode(), response.getRemark());
-	}
-
-	public String getQueuesByConsumerAddress(final String addr, final String consumerAddress, final long timeoutMillis)
-			throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
-			InterruptedException, MQBrokerException, UnsupportedEncodingException {
-
-		final GetQueuesByConsumerAddressRequestHeader requestHeader = new GetQueuesByConsumerAddressRequestHeader();
-		requestHeader.setConsumerAddress(consumerAddress);
-
-		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_QUEUES_BY_CONSUMER_ADDRESS,
-				requestHeader);
-
-		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-		switch (response.getCode()) {
-		case ResponseCode.SUCCESS: {
-			return new String(response.getBody(), "UTF-8");
-		}
-		default:
-			break;
-		}
-
-		throw new MQBrokerException(response.getCode(), response.getRemark());
-	}
-
-	public boolean offlineConsumerClientIdsByGroup(final String addr, final String consumerGroup,
-			final String clientIds, final long timeoutMillis) throws RemotingConnectException,
-			RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
-
-		final OfflineConsumerClientIdsByGroupRequestHeader requestHeader = new OfflineConsumerClientIdsByGroupRequestHeader();
-		requestHeader.setClientIds(clientIds);
-		requestHeader.setConsumerGroup(consumerGroup);
-
-		RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.OFFLINE_CONSUMER_IDS_BY_GROUP,
-				requestHeader);
-
-		RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
-		switch (response.getCode()) {
-		case ResponseCode.SUCCESS: {
-			return true;
 		}
 		default:
 			break;
@@ -1698,6 +1722,7 @@ public class MQClientAPIImpl {
 		throw new MQClientException(response.getCode(), response.getRemark());
 	}
 
+	@SuppressWarnings("deprecation")
 	public Map<String, Map<MessageQueue, Long>> invokeBrokerToGetConsumerStatus(final String addr, final String topic,
 			final String group, final String clientAddr, final long timeoutMillis) throws RemotingException,
 			MQClientException, InterruptedException {

@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -50,6 +51,7 @@ import com.alibaba.rocketmq.common.protocol.header.GetConsumerListByGroupRespons
 import com.alibaba.rocketmq.common.protocol.header.GetQueuesByConsumerAddressRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.GetQueuesByConsumerAddressResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.OfflineConsumerClientIdsByGroupRequestHeader;
+import com.alibaba.rocketmq.common.protocol.header.OnlineConsumerClientIdsByGroupRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetRequestHeader;
 import com.alibaba.rocketmq.common.protocol.header.QueryConsumerOffsetResponseHeader;
 import com.alibaba.rocketmq.common.protocol.header.UnregisterClientRequestHeader;
@@ -87,14 +89,13 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 	public ClientManageProcessor(final BrokerController brokerController) {
 		this.brokerController = brokerController;
 
-		// 两天清理一次下线的consumer ids
 		final long initialDelay = UtilAll.computTwodaysAfterMorningTimeMillis() - System.currentTimeMillis();
-		final long period = 1000 * 60 * 60 * 24 * 3; // 3 days
+		final long period = 1000 * 60 * 60 * 24 * 3; // three days
 		this.consumerClientIdsScheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 			@Override
 			public void run() {
 				try {
-					log.info("clearing ignoreConsumerClientIdsTable......>>>>>>>>>>>>>>>"
+					log.info("start clearing ignoreConsumerClientIdsTable......>>>>>>>>>>>>>>>"
 							+ ignoreConsumerClientIdsTable);
 					ignoreConsumerClientIdsTable.clear();
 				} catch (Exception e) {
@@ -109,12 +110,14 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 				try {
 					log.info("start clearing consumerAddressQueueMap......");
 
-					final ConcurrentHashMap<String/* channelRemoteAddr */, ConcurrentHashMap<String, String>/* topic-queueId */> consumerAddressQueueMap = ConsumerAddressRecorder
-							.getConsumerAddressQueueMap();
-					for (Entry<String, ConcurrentHashMap<String, String>> consumeAddressEntry : consumerAddressQueueMap
-							.entrySet()) {
-						log.info(">>>>>>>>>>>>>>>>>>clientAddress:" + consumeAddressEntry.getKey() + ">>>>>>>"
-								+ consumeAddressEntry.getValue().keySet());
+					if (new Random().nextBoolean()) {
+						final ConcurrentHashMap<String, ConcurrentHashMap<String, String>> consumerAddressQueueMap = ConsumerAddressRecorder
+								.getConsumerAddressQueueMap();
+						for (Entry<String, ConcurrentHashMap<String, String>> consumeAddressEntry : consumerAddressQueueMap
+								.entrySet()) {
+							log.info(">>>>>>>>>>>>>>>>>>clientAddress:" + consumeAddressEntry.getKey() + ">>>>>>>"
+									+ consumeAddressEntry.getValue().keySet());
+						}
 					}
 
 					ConsumerAddressRecorder.getConsumerAddressQueueMap().clear();
@@ -128,7 +131,6 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 	@Override
 	public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request)
 			throws RemotingCommandException {
-		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>ClientManageProcessor.processRequest:" + request);
 		switch (request.getCode()) {
 		case RequestCode.HEART_BEAT:
 			return this.heartBeat(ctx, request);
@@ -139,6 +141,9 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 		case RequestCode.OFFLINE_CONSUMER_IDS_BY_GROUP:
 			return this.offlineConsumerClientIdsByGroup(ctx, request);
+
+		case RequestCode.ONLINE_CONSUMER_IDS_BY_GROUP:
+			return this.onlineConsumerClientIdsByGroup(ctx, request);
 
 		case RequestCode.GET_QUEUES_BY_CONSUMER_ADDRESS:
 			return this.getQueuesByConsumerAddress(ctx, request);
@@ -254,41 +259,6 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		return response;
 	}
 
-	public RemotingCommand getQueuesByConsumerAddress(ChannelHandlerContext ctx, RemotingCommand request)
-			throws RemotingCommandException {
-		final RemotingCommand response = RemotingCommand
-				.createResponseCommand(GetQueuesByConsumerAddressResponseHeader.class);
-		final GetQueuesByConsumerAddressRequestHeader requestHeader = (GetQueuesByConsumerAddressRequestHeader) request
-				.decodeCommandCustomHeader(GetQueuesByConsumerAddressRequestHeader.class);
-
-		final ConcurrentHashMap<String, String> queueSet = ConsumerAddressRecorder.getConsumerAddressQueueMap().get(
-				requestHeader.getConsumerAddress());
-		if (queueSet != null && !queueSet.isEmpty()) {
-			try {
-				String topicQueues = "";
-				for (String topicQueue : queueSet.keySet()) {
-					topicQueues += topicQueue + ",";
-				}
-				log.info(">>>>>>>>>>>getQueuesByConsumerAddress, consumer address:"
-						+ requestHeader.getConsumerAddress() + ", topicQueues:" + topicQueues);
-				response.setBody(topicQueues.getBytes("UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				log.error("encoding exception:" + e.getMessage());
-				throw new RemotingCommandException("getQueuesByConsumerAddress encoding exception.");
-			}
-			response.setCode(ResponseCode.SUCCESS);
-			response.setRemark(null);
-			return response;
-		} else {
-			log.warn("getQueuesByConsumerAddress failed, {} {}", requestHeader.getConsumerAddress(),
-					RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-		}
-
-		response.setCode(ResponseCode.SYSTEM_ERROR);
-		response.setRemark("no consumer for this group, " + requestHeader.getConsumerAddress());
-		return response;
-	}
-
 	public RemotingCommand getConsumerListByGroup(ChannelHandlerContext ctx, RemotingCommand request)
 			throws RemotingCommandException {
 		final RemotingCommand response = RemotingCommand
@@ -302,19 +272,8 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 			final List<String> clientIds = consumerGroupInfo.getAllClientId();
 
 			final String filterConsumerClientIds = ignoreConsumerClientIdsTable.get(requestHeader.getConsumerGroup());
-			if (StringUtils.isNotBlank(filterConsumerClientIds)) {
-				final Iterator<String> clientIdsIterator = clientIds.iterator();
-				while (clientIdsIterator.hasNext()) {
-					final String clientId = clientIdsIterator.next();
-					if (filterConsumerClientIds.contains(clientId)) {
-						log.info(">>>>>>>>>>>remove clientId:" + clientId + " for consumer group:"
-								+ requestHeader.getConsumerGroup());
-						clientIdsIterator.remove();
-					}
-				}
-				log.info(">>>>>>>>>>>after filtering offline clients, consumer clientIds:" + clientIds
-						+ " for consumer group:" + requestHeader.getConsumerGroup());
-			}
+
+			filterOfflineClientIds(clientIds, filterConsumerClientIds, requestHeader.getConsumerGroup());
 
 			if (!clientIds.isEmpty()) {
 				GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
@@ -335,6 +294,39 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		response.setCode(ResponseCode.SYSTEM_ERROR);
 		response.setRemark("no consumer for this group, " + requestHeader.getConsumerGroup());
 		return response;
+	}
+
+	/**
+	 * 根据filterConsumerClientIds过滤clientId
+	 * 
+	 * @param clientIds
+	 * @param filterConsumerClientIds
+	 */
+	private void filterOfflineClientIds(final List<String> clientIds, final String filterConsumerClientIds,
+			String consumerGroup) {
+		if (StringUtils.isNotBlank(filterConsumerClientIds)) {
+			try {
+				String[] filterConsumerClientIdArray = filterConsumerClientIds.split(",");
+
+				final Iterator<String> clientIdsIterator = clientIds.iterator();
+				while (clientIdsIterator.hasNext()) {
+					final String clientId = clientIdsIterator.next();
+					final String clientHostIp = clientId.substring(0, clientId.indexOf("@"));
+					for (String filterClientId : filterConsumerClientIdArray) {
+						if (clientId.equals(filterClientId) || clientHostIp.equals(filterClientId)) {
+							clientIdsIterator.remove();
+						}
+					}
+				}
+			} catch (Exception e) {
+				log.warn("filterOfflineClientIds exception:" + e.getMessage() + ",clientIds:" + clientIds);
+			}
+
+			if (new Random().nextInt(50) == 0) {
+				log.info(">>>>>>>>>>>after filtering offline clients, consumer clientIds:" + clientIds
+						+ " for consumer group:" + consumerGroup);
+			}
+		}
 	}
 
 	public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request)
@@ -446,13 +438,14 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		final OfflineConsumerClientIdsByGroupRequestHeader requestHeader = (OfflineConsumerClientIdsByGroupRequestHeader) request
 				.decodeCommandCustomHeader(OfflineConsumerClientIdsByGroupRequestHeader.class);
 
-		log.info("===========##########offlineConsumerClientIdsByGroup :" + requestHeader.getClientIds()
-				+ " for consumer group:" + requestHeader.getConsumerGroup());
+		log.info(">>>>>>>>>>>offlineConsumerClientIdsByGroup :" + requestHeader.getClientIds() + " for consumer group:"
+				+ requestHeader.getConsumerGroup());
 		String ignoreConsumerClientIds = ignoreConsumerClientIdsTable.get(requestHeader.getConsumerGroup());
 		if (null == ignoreConsumerClientIds) {
 			ignoreConsumerClientIds = requestHeader.getClientIds();
 		} else {
-			if (!ignoreConsumerClientIds.contains(requestHeader.getClientIds())) {
+			if (!ignoreConsumerClientIds.contains(requestHeader.getClientIds())
+					|| !requestHeader.getClientIds().contains("@")) {
 				ignoreConsumerClientIds += "," + requestHeader.getClientIds();
 			}
 		}
@@ -463,6 +456,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		if (ignoreConsumerClientIds.length() <= 2000) {
 			ignoreConsumerClientIdsTable.put(requestHeader.getConsumerGroup(), ignoreConsumerClientIds);
 		}
+		log.info(">>>>>>>>>>>after offlineConsumerClientIdsByGroup :" + ignoreConsumerClientIdsTable);
 
 		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 		response.setCode(ResponseCode.SUCCESS);
@@ -470,4 +464,88 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		return response;
 	}
 
+	/**
+	 * 上线一台消费者，hostIp
+	 * 
+	 * @param ctx
+	 * @param request
+	 * @return
+	 */
+	public RemotingCommand onlineConsumerClientIdsByGroup(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final OnlineConsumerClientIdsByGroupRequestHeader requestHeader = (OnlineConsumerClientIdsByGroupRequestHeader) request
+				.decodeCommandCustomHeader(OnlineConsumerClientIdsByGroupRequestHeader.class);
+
+		final String consumerClientIp = requestHeader.getClientIp();
+		log.info(">>>>>>>>>>>onlineConsumerClientIdsByGroup :" + consumerClientIp + " for consumer group:"
+				+ requestHeader.getConsumerGroup());
+		String ignoreConsumerClientIds = ignoreConsumerClientIdsTable.get(requestHeader.getConsumerGroup());
+		if (StringUtils.isNotBlank(ignoreConsumerClientIds) && ignoreConsumerClientIds.contains(consumerClientIp)) {
+			final StringBuilder newIgnoreConsumerClientIdsBuildler = new StringBuilder();
+			final String[] ignoreConsumerClientIdArray = ignoreConsumerClientIds.split(",");
+			if (ignoreConsumerClientIdArray != null && ignoreConsumerClientIdArray.length > 0) {
+				for (final String ignoreConsumerClientId : ignoreConsumerClientIdArray) {
+					if (!ignoreConsumerClientId.contains(consumerClientIp)) {
+						newIgnoreConsumerClientIdsBuildler.append("," + ignoreConsumerClientId);
+					}
+				}
+			}
+
+			final String newFilteredClientIds = newIgnoreConsumerClientIdsBuildler.toString().replaceFirst(",", "");
+			ignoreConsumerClientIdsTable.put(requestHeader.getConsumerGroup(), newFilteredClientIds);
+		}
+
+		// clear consumer address queue map
+		ConsumerAddressRecorder.getConsumerAddressQueueMap().clear();
+
+		log.info(">>>>>>>>>>>after onlineConsumerClientIdsByGroup :" + ignoreConsumerClientIdsTable);
+
+		final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+		response.setCode(ResponseCode.SUCCESS);
+		response.setRemark(null);
+		return response;
+	}
+
+	/**
+	 * 查询queues
+	 * 
+	 * @param ctx
+	 * @param request
+	 * @return
+	 * @throws RemotingCommandException
+	 */
+	public RemotingCommand getQueuesByConsumerAddress(ChannelHandlerContext ctx, RemotingCommand request)
+			throws RemotingCommandException {
+		final RemotingCommand response = RemotingCommand
+				.createResponseCommand(GetQueuesByConsumerAddressResponseHeader.class);
+		final GetQueuesByConsumerAddressRequestHeader requestHeader = (GetQueuesByConsumerAddressRequestHeader) request
+				.decodeCommandCustomHeader(GetQueuesByConsumerAddressRequestHeader.class);
+
+		final ConcurrentHashMap<String, String> queueSet = ConsumerAddressRecorder.getConsumerAddressQueueMap().get(
+				requestHeader.getConsumerAddress());
+		if (queueSet != null && !queueSet.isEmpty()) {
+			try {
+				String topicQueues = "";
+				for (String topicQueue : queueSet.keySet()) {
+					topicQueues += topicQueue + ",";
+				}
+				log.info(">>>>>>>>>>>getQueuesByConsumerAddress, consumer address:"
+						+ requestHeader.getConsumerAddress() + ", topicQueues:" + topicQueues);
+				response.setBody(topicQueues.getBytes("UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				log.error("encoding exception:" + e.getMessage());
+				throw new RemotingCommandException("getQueuesByConsumerAddress encoding exception.");
+			}
+			response.setCode(ResponseCode.SUCCESS);
+			response.setRemark(null);
+			return response;
+		} else {
+			log.warn("getQueuesByConsumerAddress failed, {} {}", requestHeader.getConsumerAddress(),
+					RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+		}
+
+		response.setCode(ResponseCode.SYSTEM_ERROR);
+		response.setRemark("no consumer for this group, " + requestHeader.getConsumerAddress());
+		return response;
+	}
 }

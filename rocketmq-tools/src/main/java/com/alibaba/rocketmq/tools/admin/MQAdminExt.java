@@ -198,7 +198,7 @@ public interface MQAdminExt extends MQAdmin {
 	public ConsumerConnection examineConsumerConnectionInfo(final String consumerGroup)
 			throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
 			InterruptedException, MQBrokerException, RemotingException, MQClientException;
-	
+
 	public Map<String, ConsumerConnection> examineConsumerConnectionInfoByBroker(String consumerGroup)
 			throws InterruptedException, MQBrokerException, RemotingException, MQClientException;
 
@@ -215,7 +215,7 @@ public interface MQAdminExt extends MQAdmin {
 	 */
 	public ProducerConnection examineProducerConnectionInfo(final String producerGroup, final String topic)
 			throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
-	
+
 	/**
 	 * 所有生产组
 	 * 
@@ -227,39 +227,6 @@ public interface MQAdminExt extends MQAdmin {
 	 */
 	public Set<String> examineProducerGroups() throws RemotingException, MQClientException, InterruptedException,
 			MQBrokerException;
-
-	/**
-	 * 
-	 * 下线consumerGroup的consumer clientids
-	 * 
-	 * @param consumerGroup
-	 * @param clientIds
-	 * @return
-	 * @throws RemotingException
-	 * @throws MQClientException
-	 * @throws InterruptedException
-	 * @throws MQBrokerException
-	 */
-	public Map<String, Boolean> offlineConsumerClientIdsByGroup(final String consumerGroup, final String clientIds)
-			throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
-
-	/**
-	 * 
-	 * 根据消费者address查询这个消费者绑定了哪些queue
-	 * 
-	 * @param consumerAddress
-	 * @return
-	 * @throws RemotingException
-	 * @throws MQClientException
-	 * @throws InterruptedException
-	 * @throws MQBrokerException
-	 */
-	public Map<String, String> getQueuesByConsumerAddress(final String consumerAddress) throws RemotingException,
-			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException;
-	
-	public String getQueuesByBrokerAndConsumerAddress(final String brokAddr, String consumerAddress)
-			throws RemotingException, MQClientException, InterruptedException, MQBrokerException,
-			UnsupportedEncodingException;
 
 	/**
 	 * 获取Name Server地址列表
@@ -464,6 +431,54 @@ public interface MQAdminExt extends MQAdmin {
 	 */
 	public void resetOffsetNew(String consumerGroup, String topic, long timestamp) throws RemotingException,
 			MQBrokerException, InterruptedException, MQClientException;
+
+	/**
+	 * 
+	 * 下线consumerGroup的consumer clientids
+	 * 
+	 * @param consumerGroup
+	 * @param clientIds
+	 * @return
+	 * @throws RemotingException
+	 * @throws MQClientException
+	 * @throws InterruptedException
+	 * @throws MQBrokerException
+	 */
+	public Map<String, Boolean> offlineConsumerClientIdsByGroup(final String consumerGroup, final String clientIds)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+
+	/**
+	 * 
+	 * 上线consumerGroup的consumer clientIp
+	 * 
+	 * @param consumerGroup
+	 * @param clientIp
+	 * @return
+	 * @throws RemotingException
+	 * @throws MQClientException
+	 * @throws InterruptedException
+	 * @throws MQBrokerException
+	 */
+	public Map<String, Boolean> onlineConsumerClientIdsByGroup(final String consumerGroup, final String clientIp)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+
+	/**
+	 * 
+	 * 根据消费者address查询这个消费者绑定了哪些queue
+	 * 
+	 * @param consumerAddress
+	 * @return
+	 * @throws RemotingException
+	 * @throws MQClientException
+	 * @throws InterruptedException
+	 * @throws MQBrokerException
+	 */
+	public Map<String, String> getQueuesByConsumerAddress(final String consumerAddress) throws RemotingException,
+			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException;
+
+	public String getQueuesByBrokerAndConsumerAddress(final String brokAddr, String consumerAddress)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException,
+			UnsupportedEncodingException;
 
 	/**
 	 * 通过客户端查看消费者的消费情况

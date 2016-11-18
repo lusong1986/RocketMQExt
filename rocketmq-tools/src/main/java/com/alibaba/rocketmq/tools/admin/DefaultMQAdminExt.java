@@ -193,29 +193,23 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 			MQBrokerException, RemotingException, MQClientException {
 		return defaultMQAdminExtImpl.examineConsumerConnectionInfo(consumerGroup);
 	}
-	
+
 	@Override
-	public Map<String, ConsumerConnection> examineConsumerConnectionInfoByBroker(String consumerGroup) throws InterruptedException,
-			MQBrokerException, RemotingException, MQClientException {
+	public Map<String, ConsumerConnection> examineConsumerConnectionInfoByBroker(String consumerGroup)
+			throws InterruptedException, MQBrokerException, RemotingException, MQClientException {
 		return defaultMQAdminExtImpl.examineConsumerConnectionInfoByBroker(consumerGroup);
 	}
-	
+
 	@Override
 	public ProducerConnection examineProducerConnectionInfo(String producerGroup, final String topic)
 			throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
 		return defaultMQAdminExtImpl.examineProducerConnectionInfo(producerGroup, topic);
 	}
-	
+
 	@Override
 	public Set<String> examineProducerGroups() throws RemotingException, MQClientException, InterruptedException,
 			MQBrokerException {
 		return defaultMQAdminExtImpl.examineProducerGroups();
-	}
-
-	@Override
-	public Map<String, Boolean> offlineConsumerClientIdsByGroup(final String consumerGroup, final String clientIds)
-			throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
-		return defaultMQAdminExtImpl.offlineConsumerClientIdsByGroup(consumerGroup, clientIds);
 	}
 
 	@Override
@@ -330,6 +324,31 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 	}
 
 	@Override
+	public Map<String, Boolean> offlineConsumerClientIdsByGroup(final String consumerGroup, final String clientIds)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+		return defaultMQAdminExtImpl.offlineConsumerClientIdsByGroup(consumerGroup, clientIds);
+	}
+
+	@Override
+	public Map<String, Boolean> onlineConsumerClientIdsByGroup(final String consumerGroup, final String clientIp)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+		return defaultMQAdminExtImpl.onlineConsumerClientIdsByGroup(consumerGroup, clientIp);
+	}
+
+	@Override
+	public Map<String, String> getQueuesByConsumerAddress(String consumerAddress) throws RemotingException,
+			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException {
+		return defaultMQAdminExtImpl.getQueuesByConsumerAddress(consumerAddress);
+	}
+
+	@Override
+	public String getQueuesByBrokerAndConsumerAddress(String brokAddr, String consumerAddress)
+			throws RemotingException, MQClientException, InterruptedException, MQBrokerException,
+			UnsupportedEncodingException {
+		return defaultMQAdminExtImpl.getQueuesByBrokerAndConsumerAddress(brokAddr, consumerAddress);
+	}
+
+	@Override
 	public Map<String, Map<MessageQueue, Long>> getConsumeStatus(String topic, String group, String clientAddr)
 			throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
 		return defaultMQAdminExtImpl.getConsumeStatus(topic, group, clientAddr);
@@ -400,17 +419,5 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 			throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQClientException,
 			InterruptedException {
 		return this.defaultMQAdminExtImpl.ViewBrokerStatsData(brokerAddr, statsName, statsKey);
-	}
-
-	@Override
-	public Map<String, String> getQueuesByConsumerAddress(String consumerAddress) throws RemotingException,
-			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException {
-		return defaultMQAdminExtImpl.getQueuesByConsumerAddress(consumerAddress);
-	}
-	
-	@Override
-	public String getQueuesByBrokerAndConsumerAddress(String brokAddr,String consumerAddress) throws RemotingException,
-			MQClientException, InterruptedException, MQBrokerException, UnsupportedEncodingException {
-		return defaultMQAdminExtImpl.getQueuesByBrokerAndConsumerAddress(brokAddr, consumerAddress);
 	}
 }

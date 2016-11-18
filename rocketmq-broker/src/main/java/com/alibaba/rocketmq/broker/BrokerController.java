@@ -446,6 +446,8 @@ public class BrokerController {
 				this.clientManageExecutor);
 		this.remotingServer.registerProcessor(RequestCode.OFFLINE_CONSUMER_IDS_BY_GROUP, clientProcessor,
 				this.clientManageExecutor);
+		this.remotingServer.registerProcessor(RequestCode.ONLINE_CONSUMER_IDS_BY_GROUP, clientProcessor,
+				this.clientManageExecutor);
 		
 		this.remotingServer.registerProcessor(RequestCode.GET_QUEUES_BY_CONSUMER_ADDRESS, clientProcessor,
 				this.clientManageExecutor);
