@@ -5,90 +5,139 @@ package com.alibaba.rocketmq.store;
 
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
+import org.apache.commons.lang.builder.ToStringBuilder;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.alibaba.rocketmq.common.message.MessageDecoder;
+import com.alibaba.rocketmq.common.message.MessageExt;
 
 public class MapedFileTest {
 
-    private static final String StoreMessage = "Once, there was a chance for me!";
+	private static final String StoreMessage = "Once, there was a chance for me!";
 
+	@BeforeClass
+	public static void setUpBeforeClass() throws Exception {
 
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
+	}
 
-    }
+	@AfterClass
+	public static void tearDownAfterClass() throws Exception {
+	}
 
+	@Test
+	public void decodeAllMsgsFromFile() throws InterruptedException {
+		try {
+			int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
+			MapedFile mapedFile = new MapedFile(
+					"C:\\Users\\Lusong\\Desktop\\rmq_ms_notsame\\slave\\00000000022548578304", mapedFileSizeCommitLog);
+			System.out.println(ToStringBuilder.reflectionToString(mapedFile));
+			mapedFile.setWrotePostion(mapedFileSizeCommitLog);
 
-    @AfterClass
-    public static void tearDownAfterClass() throws Exception {
-    }
+			final long fileFromOffset = mapedFile.getFileFromOffset();
 
+			BufferedOutputStream fileOutputStream = new BufferedOutputStream(new FileOutputStream(new File(
+					"C:\\Users\\Lusong\\Desktop\\rmq_ms_notsame\\slave\\slave.txt")));
 
-    @Test
-    public void test_write_read() {
-        try {
-            MapedFile mapedFile = new MapedFile("./unit_test_store/MapedFileTest/000", 1024 * 64);
-            boolean result = mapedFile.appendMessage(StoreMessage.getBytes());
-            assertTrue(result);
-            System.out.println("write OK");
+			int counter = 0;
+			int pos = (int) (fileFromOffset % mapedFileSizeCommitLog);
+			System.out.println(">>>>>>>pos:" + pos + ">>>>>>>>>>fileFromOffset:" + fileFromOffset);
+			while (true) {
+				int msgSize = 0;
+				try {
+					final SelectMapedBufferResult sizeResult = mapedFile.selectMapedBuffer(pos, 4);
+					msgSize = sizeResult.getByteBuffer().getInt();
+					System.out.println(">>>>>>>>>>>>>>msgSize:" + msgSize);
 
-            SelectMapedBufferResult selectMapedBufferResult = mapedFile.selectMapedBuffer(0);
-            byte[] data = new byte[StoreMessage.length()];
-            selectMapedBufferResult.getByteBuffer().get(data);
-            String readString = new String(data);
+					final SelectMapedBufferResult sbr = mapedFile.selectMapedBuffer(pos, msgSize);
+					MessageExt messageExt = MessageDecoder.decode(sbr.getByteBuffer(), true, false);
+					//System.out.println(">>>>>>>>>>>>>>messageExt:" + messageExt);
 
-            System.out.println("Read: " + readString);
-            assertTrue(readString.equals(StoreMessage));
+					fileOutputStream.write(messageExt.getMsgId().getBytes());
+					fileOutputStream.write("\n".getBytes());
+					fileOutputStream.flush();
 
-            // 禁止Buffer读写
-            mapedFile.shutdown(1000);
+				} catch (Exception e) {
+					e.printStackTrace();
+					break;
+				} finally {
+					System.out.println(counter);
+				}
 
-            // mapedFile对象不可用
-            assertTrue(!mapedFile.isAvailable());
+				pos += msgSize;
+				counter++;
+			}
+			System.out.println(counter);
+			fileOutputStream.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
-            // 释放读到的Buffer
-            selectMapedBufferResult.release();
+	@Test
+	public void test_write_read() {
+		try {
+			MapedFile mapedFile = new MapedFile("./unit_test_store/MapedFileTest/000", 1024 * 64);
+			boolean result = mapedFile.appendMessage(StoreMessage.getBytes());
+			assertTrue(result);
+			System.out.println("write OK");
 
-            // 内存真正释放掉
-            assertTrue(mapedFile.isCleanupOver());
+			SelectMapedBufferResult selectMapedBufferResult = mapedFile.selectMapedBuffer(0);
+			byte[] data = new byte[StoreMessage.length()];
+			selectMapedBufferResult.getByteBuffer().get(data);
+			String readString = new String(data);
 
-            // 文件删除成功
-            assertTrue(mapedFile.destroy(1000));
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+			System.out.println("Read: " + readString);
+			assertTrue(readString.equals(StoreMessage));
 
+			// 禁止Buffer读写
+			mapedFile.shutdown(1000);
 
-    /**
-     * 当前测试用例由于对mmap操作错误，会导致JVM CRASHED
-     */
-    @Ignore
-    public void test_jvm_crashed() {
-        try {
-            MapedFile mapedFile = new MapedFile("./unit_test_store/MapedFileTest/10086", 1024 * 64);
-            boolean result = mapedFile.appendMessage(StoreMessage.getBytes());
-            assertTrue(result);
-            System.out.println("write OK");
+			// mapedFile对象不可用
+			assertTrue(!mapedFile.isAvailable());
 
-            SelectMapedBufferResult selectMapedBufferResult = mapedFile.selectMapedBuffer(0);
-            selectMapedBufferResult.release();
-            mapedFile.shutdown(1000);
+			// 释放读到的Buffer
+			selectMapedBufferResult.release();
 
-            byte[] data = new byte[StoreMessage.length()];
-            selectMapedBufferResult.getByteBuffer().get(data);
-            String readString = new String(data);
-            System.out.println(readString);
-        }
-        catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
+			// 内存真正释放掉
+			assertTrue(mapedFile.isCleanupOver());
+
+			// 文件删除成功
+			assertTrue(mapedFile.destroy(1000));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * 当前测试用例由于对mmap操作错误，会导致JVM CRASHED
+	 */
+	@Ignore
+	public void test_jvm_crashed() {
+		try {
+			MapedFile mapedFile = new MapedFile("./unit_test_store/MapedFileTest/10086", 1024 * 64);
+			boolean result = mapedFile.appendMessage(StoreMessage.getBytes());
+			assertTrue(result);
+			System.out.println("write OK");
+
+			SelectMapedBufferResult selectMapedBufferResult = mapedFile.selectMapedBuffer(0);
+			selectMapedBufferResult.release();
+			mapedFile.shutdown(1000);
+
+			byte[] data = new byte[StoreMessage.length()];
+			selectMapedBufferResult.getByteBuffer().get(data);
+			String readString = new String(data);
+			System.out.println(readString);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 }
