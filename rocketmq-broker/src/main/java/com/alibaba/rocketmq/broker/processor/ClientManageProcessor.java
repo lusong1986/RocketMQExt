@@ -312,19 +312,14 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
 		final List<String> newClientIds = new ArrayList<String>();
 		try {
-			String[] filterConsumerClientIdArray = filterConsumerClientIds.split(",");
+			final String[] filterConsumerClientIdArray = filterConsumerClientIds.split(",");
 
 			final Iterator<String> clientIdsIterator = clientIds.iterator();
 			while (clientIdsIterator.hasNext()) {
 				final String clientId = clientIdsIterator.next();
 				final String clientHostIp = clientId.substring(0, clientId.indexOf("@"));
-				for (String filterClientId : filterConsumerClientIdArray) {
-					if (clientId.equals(filterClientId) || clientHostIp.equals(filterClientId)) {
-						// log.info(">>>>>>>>>>>>>removed clientId>>>>>>" + clientId + " for consumer group:"
-						// + consumerGroup);
-					} else {
-						newClientIds.add(clientId);
-					}
+				if (!filterClientId(clientId, clientHostIp, filterConsumerClientIdArray)) {
+					newClientIds.add(clientId);
 				}
 			}
 		} catch (Exception e) {
@@ -333,11 +328,29 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		}
 
 		if (new Random().nextInt(50) == 0) {
-			log.info(">>>>>>>>>>>after filtering offline clients, consumer clientIds:" + newClientIds
+			log.info(">>>>>>>>>>>after filtering offline clients, new consumer clientIds:" + newClientIds
 					+ " for consumer group:" + consumerGroup);
 		}
 
 		return newClientIds;
+	}
+
+	/**
+	 * 是否被过滤掉
+	 * 
+	 * @param clientId
+	 * @param clientHostIp
+	 * @param filterConsumerClientIdArray
+	 * @return
+	 */
+	private static boolean filterClientId(final String clientId, final String clientHostIp,
+			final String[] filterConsumerClientIdArray) {
+		for (final String filterClientId : filterConsumerClientIdArray) {
+			if (clientId.equals(filterClientId) || clientHostIp.equals(filterClientId)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public RemotingCommand unregisterClient(ChannelHandlerContext ctx, RemotingCommand request)
