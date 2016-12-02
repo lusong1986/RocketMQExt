@@ -111,7 +111,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 				try {
 					log.info("start clearing consumerAddressQueueMap......");
 
-					if (new Random().nextBoolean()) {
+					if (new Random().nextInt(10) % 10 == 1) {
 						final ConcurrentHashMap<String, ConcurrentHashMap<String, String>> consumerAddressQueueMap = ConsumerAddressRecorder
 								.getConsumerAddressQueueMap();
 						for (Entry<String, ConcurrentHashMap<String, String>> consumeAddressEntry : consumerAddressQueueMap
@@ -126,7 +126,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 					log.error("schedule consumer client ids error.", e);
 				}
 			}
-		}, 30, 180, TimeUnit.SECONDS);
+		}, 30, 120, TimeUnit.SECONDS);
 	}
 
 	@Override
@@ -563,13 +563,10 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 			response.setCode(ResponseCode.SUCCESS);
 			response.setRemark(null);
 			return response;
-		} else {
-			log.warn("getQueuesByConsumerAddress failed, {} {}", requestHeader.getConsumerAddress(),
-					RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 		}
 
 		response.setCode(ResponseCode.SYSTEM_ERROR);
-		response.setRemark("no consumer for this group, " + requestHeader.getConsumerAddress());
+		response.setRemark("no topic queues for this consumer address, " + requestHeader.getConsumerAddress());
 		return response;
 	}
 }
