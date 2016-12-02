@@ -333,7 +333,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 		}
 
 		if (new Random().nextInt(50) == 0) {
-			log.info(">>>>>>>>>>>after filtering offline clients, consumer clientIds:" + clientIds
+			log.info(">>>>>>>>>>>after filtering offline clients, consumer clientIds:" + newClientIds
 					+ " for consumer group:" + consumerGroup);
 		}
 
