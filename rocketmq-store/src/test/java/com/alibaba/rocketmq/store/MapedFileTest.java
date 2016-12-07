@@ -6,10 +6,15 @@ package com.alibaba.rocketmq.store;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.HashMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -33,11 +38,41 @@ public class MapedFileTest {
 	}
 
 	@Test
+	public void comapre() throws InterruptedException, IOException {
+		BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(new File(
+				"C:\\Users\\Lusong\\Desktop\\rmq_ms_notsame\\slave\\slave.txt"))));
+
+		HashMap<String, String> slaves = new HashMap<String, String>(1000000);
+		while (true) {
+			String msgId = reader.readLine();
+			if (StringUtils.isNotBlank(msgId)) {
+				slaves.put(msgId, "");
+			} else {
+				break;
+			}
+		}
+		System.out.println(slaves.size());
+
+		BufferedReader reader2 = new BufferedReader(new InputStreamReader(new FileInputStream(new File(
+				"C:\\Users\\Lusong\\Desktop\\rmq_ms_notsame\\master\\master.txt"))));
+
+		while (true) {
+			String msgId = reader2.readLine();
+			if (StringUtils.isNotBlank(msgId) && !slaves.containsKey(msgId)) {
+				System.out.println(">>>>>>>>>>>>not contain msgId:" +msgId);
+				break;
+			}
+		}
+		System.out.println("aaa");
+
+	}
+
+	@Test
 	public void decodeAllMsgsFromFile() throws InterruptedException {
 		try {
 			int mapedFileSizeCommitLog = 1024 * 1024 * 1024;
-			MapedFile mapedFile = new MapedFile(
-					"C:\\Users\\Lusong\\Desktop\\rmq_ms_notsame\\slave\\00000000022548578304", mapedFileSizeCommitLog);
+			MapedFile mapedFile = new MapedFile("C:\\Users\\Lusong\\Downloads\\slave\\00000000024696061952",
+					mapedFileSizeCommitLog);
 			System.out.println(ToStringBuilder.reflectionToString(mapedFile));
 			mapedFile.setWrotePostion(mapedFileSizeCommitLog);
 
@@ -58,7 +93,7 @@ public class MapedFileTest {
 
 					final SelectMapedBufferResult sbr = mapedFile.selectMapedBuffer(pos, msgSize);
 					MessageExt messageExt = MessageDecoder.decode(sbr.getByteBuffer(), true, false);
-					//System.out.println(">>>>>>>>>>>>>>messageExt:" + messageExt);
+					// System.out.println(">>>>>>>>>>>>>>messageExt:" + messageExt);
 
 					fileOutputStream.write(messageExt.getMsgId().getBytes());
 					fileOutputStream.write("\n".getBytes());
