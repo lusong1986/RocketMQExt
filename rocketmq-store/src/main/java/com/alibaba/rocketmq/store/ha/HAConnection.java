@@ -203,7 +203,7 @@ public class HAConnection {
 							// +",pos:" +pos+ "] request offset "
 							// + readOffset);
 
-							// 处理Slave的请求
+							// 处理Slave的请求, slave写完commitlog数据后会向master返回写完后的commitlogoffset，也就是最大offset
 							HAConnection.this.slaveAckOffset = readOffset;
 							if (HAConnection.this.slaveRequestOffset < 0) {
 								HAConnection.this.slaveRequestOffset = readOffset;
