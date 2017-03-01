@@ -231,7 +231,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 		int wipeTopicCnt = this.namesrvController.getRouteInfoManager().wipeWritePermOfBrokerByLock(
 				requestHeader.getBrokerName());
 
-		log.info("wipe write perm of broker[{}], client: {}, {}", //
+		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>wipe write perm of broker[{}], client: {}, {}", //
 				requestHeader.getBrokerName(), //
 				RemotingHelper.parseChannelRemoteAddr(ctx.channel()), //
 				wipeTopicCnt);

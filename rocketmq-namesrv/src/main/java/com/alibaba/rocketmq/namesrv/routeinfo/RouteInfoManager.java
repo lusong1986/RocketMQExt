@@ -240,6 +240,7 @@ public class RouteInfoManager {
 				if (qd.getBrokerName().equals(brokerName)) {
 					int perm = qd.getPerm();
 					perm &= ~PermName.PERM_WRITE;
+					perm &= ~PermName.PERM_READ;
 					qd.setPerm(perm);
 					wipeTopicCnt++;
 				}

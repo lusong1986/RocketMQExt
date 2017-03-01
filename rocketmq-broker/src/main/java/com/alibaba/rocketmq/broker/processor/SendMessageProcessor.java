@@ -195,6 +195,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 				newTopic,//
 				subscriptionGroupConfig.getRetryQueueNums(), //
 				PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
+
+		log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>consumerSendMsgBack.topicConfig>>>>>>>>>" + JSON.toJSONString(topicConfig));
+
 		if (null == topicConfig) {
 			response.setCode(ResponseCode.SYSTEM_ERROR);
 			response.setRemark("topic[" + newTopic + "] not exist");
@@ -231,6 +234,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		if (msgExt.getReconsumeTimes() >= subscriptionGroupConfig.getRetryMaxTimes()//
 				|| delayLevel < 0) {
 			newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
+
+			log.info("#############################>>>>>>>>>>>>>>>>>consumerSendMsgBack DLQ msg:" + newTopic);
 			queueIdInt = Math.abs(this.random.nextInt() % 99999999) % DLQ_NUMS_PER_GROUP;
 
 			topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, //
@@ -260,12 +265,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 		msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(null, msgExt.getTags()));
 
-		// // 消费失败的消息的parent指向上一次消费消息的child，child新生成一个messageid
-		// final Map<String, String> tracePropertis = buildMQTraceProperties(msgExt.getProperties());
-		// for (Entry<String, String> traceEntry : tracePropertis.entrySet()) {
-		// msgInner.putUserProperty(traceEntry.getKey(), traceEntry.getValue());
-		// }
-
 		msgInner.setQueueId(queueIdInt);
 		msgInner.setSysFlag(msgExt.getSysFlag());
 		msgInner.setBornTimestamp(msgExt.getBornTimestamp());
@@ -277,7 +276,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
 		MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
 
-		log.info(">>>>>>>>>>>>>==========consume failed msg, store a delay msgInner:" + msgInner);
+		log.info("#############################consume failed msg, store a delay msgInner:" + msgInner);
 		PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
 		if (putMessageResult != null) {
 			switch (putMessageResult.getPutMessageStatus()) {
@@ -308,39 +307,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 		response.setRemark("putMessageResult is null");
 		return response;
 	}
-
-	// private static Map<String, String> buildMQTraceProperties(Map<String, String> properties) {
-	// try {
-	// MessageTree tree = Cat.getManager().getThreadLocalMessageTree();
-	// tree.setMessageId(properties.get(Context.CHILD + 1));
-	// tree.setParentMessageId(properties.get(Context.PARENT + 1));
-	// tree.setRootMessageId(properties.get(Context.ROOT));
-	//
-	// String messageId = tree.getMessageId();
-	// if (messageId == null) {
-	// messageId = Cat.createMessageId();
-	// tree.setMessageId(messageId);
-	// }
-	//
-	// String childId1 = Cat.createMessageId();
-	// Cat.logEvent(CatConstants.TYPE_REMOTE_CALL, "", Event.SUCCESS, childId1);
-	//
-	// String root = tree.getRootMessageId();
-	// if (root == null) {
-	// root = messageId;
-	// }
-	//
-	// Map<String, String> map = new HashMap<String, String>();
-	// map.put(Context.ROOT, root);
-	// map.put(Context.PARENT + 1, messageId);
-	// map.put(Context.CHILD + 1, childId1);
-	//
-	// return map;
-	// } catch (Exception e) {
-	// e.printStackTrace();
-	// }
-	// return null;
-	// }
 
 	private String diskUtil() {
 		String storePathPhysic = this.brokerController.getMessageStoreConfig().getStorePathCommitLog();
