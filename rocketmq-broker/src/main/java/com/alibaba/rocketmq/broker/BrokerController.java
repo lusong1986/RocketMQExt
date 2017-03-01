@@ -315,6 +315,18 @@ public class BrokerController {
 					}
 
 				}, 1000 * 10, 1000 * 30, TimeUnit.MILLISECONDS);
+				
+				this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+					@Override
+					public void run() {
+						try {
+							BrokerController.this.printMasterAndSlaveDiff();
+						} catch (Exception e) {
+							log.error("schedule printMasterAndSlaveDiff error.", e);
+						}
+					}
+				}, 1000 * 10, 1000 * 60, TimeUnit.MILLISECONDS);
 
 				this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 					@Override
