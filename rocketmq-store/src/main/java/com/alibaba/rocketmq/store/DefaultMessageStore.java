@@ -534,7 +534,7 @@ public class DefaultMessageStore implements MessageStore {
 
 						int i = 0;
 						final int MaxFilterMessageCount = 16000;
-						boolean diskFallRecorded = false;
+						boolean diskFallRecorded = true;
 						for (; i < bufferConsumeQueue.getSize() && i < MaxFilterMessageCount; i += ConsumeQueue.CQStoreUnitSize) {
 							long offsetPy = bufferConsumeQueue.getByteBuffer().getLong();
 							int sizePy = bufferConsumeQueue.getByteBuffer().getInt();
@@ -570,7 +570,6 @@ public class DefaultMessageStore implements MessageStore {
 
 									// 统计读取磁盘落后情况
 									if (diskFallRecorded) {
-										diskFallRecorded = true;
 										long fallBehind = consumeQueue.getMaxPhysicOffset() - offsetPy;
 										brokerStatsManager.recordDiskFallBehind(group, topic, queueId, fallBehind);
 									}

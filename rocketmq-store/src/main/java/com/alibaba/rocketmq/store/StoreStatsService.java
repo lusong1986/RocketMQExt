@@ -424,6 +424,8 @@ public class StoreStatsService extends ServiceThread {
 		result.put("getTotalTps", String.valueOf(this.getGetTotalTps()));
 		result.put("getTransferedTps", String.valueOf(this.getGetTransferedTps()));
 
+		log.info(">>>>>>>>>>>>>StoreStatsService.getRuntimeInfo>>>>>>" + result);
+
 		return result;
 	}
 

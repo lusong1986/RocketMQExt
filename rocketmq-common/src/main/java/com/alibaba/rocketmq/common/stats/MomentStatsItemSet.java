@@ -63,11 +63,12 @@ public class MomentStatsItemSet {
                 }
             }
         }, Math.abs(UtilAll.computNextMinutesTimeMillis() - System.currentTimeMillis()), //
-            1000 * 60 * 5, TimeUnit.MILLISECONDS);
+            1000 * 60 * 1, TimeUnit.MILLISECONDS);
     }
 
 
     private void printAtMinutes() {
+    	log.info(">>>>>>>>>>>>>>>>>>printAtMinutes>>>>>>>>>MomentStatsItem");
         Iterator<Entry<String, MomentStatsItem>> it = this.statsItemTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, MomentStatsItem> next = it.next();
