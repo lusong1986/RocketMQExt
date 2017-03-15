@@ -5,7 +5,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>com.alibaba.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>3.3.3</version>
+    <version>3.3.4</version>
     <packaging>pom</packaging>
     <name>rocketmq-all ${project.version}</name>
     <url>https://github.com/alibaba/rocketmq</url>
@@ -399,7 +399,7 @@
 			<dependency>
 				<groupId>com.dianping.cat</groupId>
 				<artifactId>cat-client</artifactId>
-				<version>1.3.6.3</version>
+				<version>1.3.6.5</version>
 			</dependency>
 			<dependency>
 				<groupId>org.unidal.framework</groupId>

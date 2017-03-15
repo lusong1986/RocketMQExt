@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.rocketmq.common.DataVersion;
 import com.alibaba.rocketmq.common.MixAll;
 import com.alibaba.rocketmq.common.TopicConfig;
@@ -70,6 +71,10 @@ public class RouteInfoManager {
 		ClusterInfo clusterInfoSerializeWrapper = new ClusterInfo();
 		clusterInfoSerializeWrapper.setBrokerAddrTable(this.brokerAddrTable);
 		clusterInfoSerializeWrapper.setClusterAddrTable(this.clusterAddrTable);
+
+		log.info(">>>>>>>>>>>>>>>>>getAllClusterInfo.brokerAddrTable:" + JSON.toJSONString(brokerAddrTable));
+		log.info(">>>>>>>>>>>>>>>>>getAllClusterInfo.clusterAddrTable:" + JSON.toJSONString(clusterAddrTable));
+
 		return clusterInfoSerializeWrapper.encode();
 	}
 
@@ -240,7 +245,7 @@ public class RouteInfoManager {
 				if (qd.getBrokerName().equals(brokerName)) {
 					int perm = qd.getPerm();
 					perm &= ~PermName.PERM_WRITE;
-					//perm &= ~PermName.PERM_READ;
+					perm &= ~PermName.PERM_READ;
 					qd.setPerm(perm);
 					wipeTopicCnt++;
 				}
