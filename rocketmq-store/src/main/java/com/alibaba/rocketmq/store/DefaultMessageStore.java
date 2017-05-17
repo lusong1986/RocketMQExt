@@ -1143,7 +1143,6 @@ public class DefaultMessageStore implements MessageStore {
 			long storeTimestamp, long logicOffset) {
 		ConsumeQueue cq = this.findConsumeQueue(topic, queueId);
 
-		log.info(">>>>>>>>>>>>>>>>DefaultMessageStore.putMessagePostionInfo>>>ConsumeQueue:" + JSON.toJSONString(cq));
 		cq.putMessagePostionInfoWrapper(offset, size, tagsCode, storeTimestamp, logicOffset);
 	}
 
