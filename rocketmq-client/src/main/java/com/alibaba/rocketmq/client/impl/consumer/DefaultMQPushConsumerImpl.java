@@ -563,7 +563,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 			MessageAccessor.putProperty(newMsg, MessageConst.PROPERTY_RETRY_TOPIC, msg.getTopic());
 			int reTimes = msg.getReconsumeTimes() + 1;
 			MessageAccessor.setReconsumeTime(newMsg, reTimes + "");
-			newMsg.setDelayTimeLevel(3 + reTimes);
+			
+			
+			// retry times bug
+			newMsg.setDelayTimeLevel(2 + reTimes);
+			// https://issues.apache.org/jira/browse/ROCKETMQ-196
 
 			this.mQClientFactory.getDefaultMQProducer().send(newMsg);
 		}
